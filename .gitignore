@@ -31,7 +31,9 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.*.local
 
 # vercel
 .vercel
@@ -39,3 +41,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+doc_tools/.venv/
+doc_tools/output/
+
+# non-code files
+*.pptx
+.~*.pptx
+doc_tools/
+SEO-GEO-AUDIT-AND-PLAN.md

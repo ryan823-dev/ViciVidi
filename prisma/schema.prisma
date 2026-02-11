@@ -1,0 +1,419 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== TENANT & AUTH ====================
+
+model Tenant {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  domain    String?
+  plan      String    @default("free")
+  status    String    @default("active")
+  settings  Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users          User[]
+  products       Product[]
+  seoContents    SeoContent[]
+  seoAudits      SeoAudit[]
+  socialPosts    SocialPost[]
+  socialAccounts SocialAccount[]
+  leads          Lead[]
+  campaigns      Campaign[]
+  categories     ContentCategory[]
+  websiteConfig  WebsiteConfig?
+  activities     Activity[]
+}
+
+model WebsiteConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  url             String?
+  apiKey          String?
+  publishEndpoint String?
+  seoDefaults     Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
+  locale        String    @default("zh-CN")
+  timezone      String    @default("Asia/Shanghai")
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  accounts    Account[]
+  sessions    Session[]
+  seoContents SeoContent[]
+  seoAudits   SeoAudit[]
+  socialPosts SocialPost[]
+  ownedLeads  Lead[]
+  activities  Activity[]
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+model Role {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  displayName  String
+  permissions  Json
+  isSystemRole Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users User[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== MODULE 1: PRODUCTS ====================
+
+model Product {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sku             String?
+  name            String
+  slug            String
+  description     String?   @db.Text
+  detailedContent String?   @db.Text
+  status          String    @default("draft")
+  publishedAt     DateTime?
+  metadata        Json      @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  images     ProductImage[]
+  specs      ProductSpec[]
+  categories ProductCategory[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  altText   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ProductSpec {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key       String
+  value     String  @db.Text
+  unit      String?
+  order     Int     @default(0)
+
+  @@index([productId])
+}
+
+model ProductCategory {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+
+  @@unique([productId, name])
+  @@index([productId])
+}
+
+// ==================== MODULE 2: SEO & GEO CONTENT ====================
+
+model SeoAudit {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  targetUrl     String
+  status        String    @default("pending")
+  progress      Int       @default(0)
+  currentStep   String?
+  scores        Json      @default("{}")
+  findings      Json      @default("[]")
+  aiSummary     String?   @db.Text
+  crawlErrors   Json      @default("[]")
+  pagesCrawled  Int       @default(0)
+  crawlDuration Int?
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([status])
+}
+
+model ContentCategory {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contents SeoContent[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model SeoContent {
+  id              String          @id @default(cuid())
+  tenantId        String
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId      String
+  category        ContentCategory @relation(fields: [categoryId], references: [id])
+  authorId        String
+  author          User            @relation(fields: [authorId], references: [id])
+  title           String
+  slug            String
+  excerpt         String?         @db.Text
+  content         String          @db.Text
+  metaTitle       String?
+  metaDescription String?
+  keywords        String[]
+  featuredImage   String?
+  status          String          @default("draft")
+  publishedAt     DateTime?
+  scheduledAt     DateTime?
+  aiMetadata      Json            @default("{}")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([status])
+}
+
+// ==================== MODULE 3: SOCIAL MEDIA ====================
+
+model SocialAccount {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  platform     String
+  accountName  String
+  accountId    String
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+  metadata     Json      @default("{}")
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([tenantId, platform, accountId])
+  @@index([tenantId])
+}
+
+model SocialPost {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User      @relation(fields: [authorId], references: [id])
+  title        String?
+  status       String    @default("draft")
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  autoEngage   Boolean   @default(false)
+  engageConfig Json      @default("{}")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  versions PostVersion[]
+
+  @@index([tenantId])
+  @@index([authorId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model PostVersion {
+  id              String     @id @default(cuid())
+  postId          String
+  post            SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  platform        String
+  content         String     @db.Text
+  media           String[]
+  platformPostId  String?
+  publishedAt     DateTime?
+  error           String?
+  publishAttempts Int        @default(0)
+  metrics         Json       @default("{}")
+
+  @@index([postId])
+}
+
+// ==================== MODULE 4: AI LEAD GENERATION ====================
+
+model Lead {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerId         String
+  owner           User      @relation(fields: [ownerId], references: [id])
+  companyName     String
+  contactName     String?
+  email           String?
+  phone           String?
+  website         String?
+  country         String?
+  city            String?
+  industry        String?
+  companySize     String?
+  status          String    @default("new")
+  priority        String    @default("medium")
+  researchData    Json      @default("{}")
+  notes           String?   @db.Text
+  lastContactedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  campaigns CampaignLead[]
+
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([email])
+}
+
+model Campaign {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?   @db.Text
+  emailTemplate  String    @db.Text
+  subject        String
+  status         String    @default("draft")
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  metrics        Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  leads CampaignLead[]
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model CampaignLead {
+  id                  String    @id @default(cuid())
+  campaignId          String
+  campaign            Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId              String
+  lead                Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  status              String    @default("pending")
+  sentAt              DateTime?
+  openedAt            DateTime?
+  repliedAt           DateTime?
+  personalizedContent String?   @db.Text
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([campaignId, leadId])
+  @@index([campaignId])
+  @@index([leadId])
+}
+
+// ==================== SYSTEM ====================
+
+model Activity {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
