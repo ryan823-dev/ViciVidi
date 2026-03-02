@@ -30,5 +30,17 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "prisma/seed.ts"]
+  "exclude": [
+    "node_modules",
+    "prisma/seed.ts",
+    "-",
+    "machrio",
+    "mroport.com",
+    "paintcell",
+    "paintcell-site",
+    "ryan823-project",
+    "vetsphere",
+    "scripts",
+    "doc_tools"
+  ]
 }
