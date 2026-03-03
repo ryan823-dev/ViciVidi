@@ -18,7 +18,9 @@ const TOWER_DOMAINS = ["tower.vertax.top", "tower.vertax.cn"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const hostname = req.headers.get("host") || "localhost";
+  // Get hostname - try multiple sources for Vercel compatibility
+  // req.nextUrl.host should contain the original host for custom domains
+  const hostname = req.nextUrl.host || req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost";
   
   // Resolve tenant and view mode from domain
   const tenantInfo = resolveTenant(hostname);
@@ -26,7 +28,7 @@ export default auth((req) => {
 
   // Helper to create redirect URL preserving the original host
   const createRedirectUrl = (path: string) => {
-    const protocol = req.headers.get("x-forwarded-proto") || "https";
+    const protocol = req.nextUrl.protocol?.replace(':', '') || req.headers.get("x-forwarded-proto") || "https";
     return new URL(path, `${protocol}://${hostname}`);
   };
 
