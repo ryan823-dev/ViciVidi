@@ -88,6 +88,49 @@ export async function chatCompletion(
   };
 }
 
+/**
+ * OpenAI-compatible client interface for server actions
+ */
+export const aiClient = {
+  chat: {
+    completions: {
+      create: async (params: {
+        model?: string;
+        messages: Array<{ role: string; content: string }>;
+        temperature?: number;
+        max_tokens?: number;
+      }) => {
+        const response = await chatCompletion(
+          params.messages.map((m) => ({
+            role: m.role as "system" | "user" | "assistant",
+            content: m.content,
+          })),
+          {
+            model: params.model,
+            temperature: params.temperature,
+            maxTokens: params.max_tokens,
+          }
+        );
+        return {
+          choices: [
+            {
+              message: {
+                content: response.content,
+              },
+            },
+          ],
+          model: response.model,
+          usage: {
+            prompt_tokens: response.usage.promptTokens,
+            completion_tokens: response.usage.completionTokens,
+            total_tokens: response.usage.totalTokens,
+          },
+        };
+      },
+    },
+  },
+};
+
 // ==================== 企业能力画像分析 Prompt ====================
 
 const COMPANY_PROFILE_SYSTEM_PROMPT = `你是一个专业的B2B企业分析师，擅长从企业资料中提炼企业能力画像。
