@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Sparkles, 
@@ -10,13 +10,27 @@ import {
   Clock,
   ChevronRight,
   Send,
-  Briefcase,
-  BarChart3,
   Lightbulb,
   Library,
   Radar,
   Globe,
+  Loader2,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  ArrowUpRight,
 } from 'lucide-react';
+import {
+  getDashboardStats,
+  getPendingActions,
+  getTenantInfo,
+  generateAIBriefing,
+  type DashboardStats,
+  type PendingAction,
+  type TenantInfo,
+  type AIBriefing,
+} from '@/actions/dashboard';
 
 // Quick action buttons for AI chat
 const quickPrompts = [
@@ -26,24 +40,19 @@ const quickPrompts = [
   { label: '增长瓶颈在哪', icon: Lightbulb },
 ];
 
-// Module health indicators
-const moduleStats = [
-  { key: 'knowledge', label: '知识体系', value: '78', unit: '%', change: '+8% 本周', href: '/c/knowledge' },
-  { key: 'leads', label: '潜在客户', value: '0', unit: '家', change: '已发现', href: '/c/radar' },
-  { key: 'content', label: '内容资产', value: '3', unit: '篇', change: '2篇待确认', href: '/c/marketing' },
-  { key: 'actions', label: '待决策项', value: '0', unit: '项', change: 'P0 级阻塞', href: '/c/hub' },
-];
-
-// Pending actions
-const pendingActions = [
-  { id: '1', priority: 'P1', title: '社媒账号未授权', action: '授权接入' },
-];
-
 export default function StrategicHomePage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [inputValue, setInputValue] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
+  
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [actions, setActions] = useState<PendingAction[]>([]);
+  const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
+  const [briefing, setBriefing] = useState<AIBriefing | null>(null);
+  const [isGeneratingBriefing, setIsGeneratingBriefing] = useState(false);
 
+  // Time update
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -55,12 +64,106 @@ export default function StrategicHomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load data
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [statsData, actionsData, tenantData] = await Promise.all([
+        getDashboardStats(),
+        getPendingActions(),
+        getTenantInfo(),
+      ]);
+      setStats(statsData);
+      setActions(actionsData);
+      setTenantInfo(tenantData);
+    } catch (err) {
+      console.error('Failed to load dashboard:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Generate AI briefing
+  const handleGenerateBriefing = async () => {
+    setIsGeneratingBriefing(true);
+    try {
+      const result = await generateAIBriefing();
+      setBriefing(result);
+    } catch (err) {
+      console.error('Failed to generate briefing:', err);
+    } finally {
+      setIsGeneratingBriefing(false);
+    }
+  };
+
   const handleSend = () => {
     if (!inputValue.trim()) return;
     // TODO: Implement AI chat
     console.log('Send:', inputValue);
     setInputValue('');
   };
+
+  // Get priority style
+  const getPriorityStyle = (priority: string) => {
+    const styles: Record<string, string> = {
+      P0: 'bg-red-100 text-red-600',
+      P1: 'bg-amber-100 text-amber-600',
+      P2: 'bg-blue-100 text-blue-600',
+    };
+    return styles[priority] || 'bg-slate-100 text-slate-600';
+  };
+
+  // Module stats for display
+  const moduleStats = stats ? [
+    { 
+      key: 'knowledge', 
+      label: '知识体系', 
+      value: stats.knowledgeCompleteness.toString(), 
+      unit: '%', 
+      change: stats.knowledgeCompleteness >= 80 ? '完善' : stats.knowledgeCompleteness >= 50 ? '良好' : '待完善', 
+      href: '/c/knowledge',
+      color: stats.knowledgeCompleteness >= 80 ? 'text-emerald-500' : stats.knowledgeCompleteness >= 50 ? 'text-amber-500' : 'text-red-500',
+    },
+    { 
+      key: 'leads', 
+      label: '潜在客户', 
+      value: stats.totalLeads.toString(), 
+      unit: '家', 
+      change: stats.highIntentLeads > 0 ? `${stats.highIntentLeads} 高意向` : '已发现', 
+      href: '/c/radar',
+      color: stats.highIntentLeads > 0 ? 'text-emerald-500' : 'text-slate-400',
+    },
+    { 
+      key: 'content', 
+      label: '内容资产', 
+      value: stats.totalContents.toString(), 
+      unit: '篇', 
+      change: stats.pendingContents > 0 ? `${stats.pendingContents} 待发布` : '已就绪', 
+      href: '/c/marketing',
+      color: stats.pendingContents > 0 ? 'text-amber-500' : 'text-emerald-500',
+    },
+    { 
+      key: 'actions', 
+      label: '待决策项', 
+      value: stats.pendingTasks.toString(), 
+      unit: '项', 
+      change: stats.blockedTasks > 0 ? `${stats.blockedTasks} P0阻塞` : '正常', 
+      href: '/c/hub',
+      color: stats.blockedTasks > 0 ? 'text-red-500' : 'text-emerald-500',
+    },
+  ] : [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-[#C7A56A] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -74,15 +177,23 @@ export default function StrategicHomePage() {
             </h2>
             <p className="text-sm text-slate-500 mt-1">{currentDate}</p>
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold text-[#0B1B2B]">{currentTime}</p>
-            <p className="text-xs text-slate-400">更新</p>
+          <div className="text-right flex items-center gap-4">
+            <button
+              onClick={loadData}
+              className="p-2 text-slate-400 hover:text-[#C7A56A] transition-colors"
+            >
+              <RefreshCw size={18} />
+            </button>
+            <div>
+              <p className="text-3xl font-bold text-[#0B1B2B]">{currentTime}</p>
+              <p className="text-xs text-slate-400">更新</p>
+            </div>
           </div>
         </div>
 
         <div className="bg-[#F7F3EA] rounded-2xl p-6 mb-6">
           <p className="text-sm text-slate-600">
-            <span className="font-bold text-[#0B1B2B]">涂豆科技</span> 全球化获客态势
+            <span className="font-bold text-[#0B1B2B]">{tenantInfo?.companyName || tenantInfo?.name || '企业'}</span> 全球化获客态势
           </p>
           <p className="text-xs text-slate-500 mt-2">
             VertaX 智能引擎已完成深度分析，以下是需要您关注的关键指标与决策事项。
@@ -102,22 +213,74 @@ export default function StrategicHomePage() {
                 <span className="text-2xl font-bold text-[#0B1B2B]">{stat.value}</span>
                 <span className="text-sm text-slate-400">{stat.unit}</span>
               </div>
-              <p className="text-[10px] text-[#C7A56A] mt-1">{stat.change}</p>
+              <p className={`text-[10px] mt-1 ${stat.color}`}>{stat.change}</p>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Core Growth Conclusion */}
+      {/* AI Briefing Section */}
       <div className="bg-gradient-to-br from-[#0B1B2B] to-[#10263B] rounded-[2rem] p-8 text-white">
-        <h3 className="text-sm font-bold text-[#C7A56A] mb-3">核心增长结论</h3>
-        <p className="text-sm leading-relaxed text-slate-300">
-          【出海获客智能体】当前系统正聚焦于 <span className="text-white font-medium">涂豆科技 (tdpaintcell)</span> 的全球增长任务。
-          我已完成初步的产品建模与 ICP 推演，正在为您构建闭环增长引擎。
-        </p>
-        <button className="mt-4 px-4 py-2 bg-[#C7A56A]/10 border border-[#C7A56A]/30 rounded-lg text-[#C7A56A] text-sm font-medium hover:bg-[#C7A56A]/20 transition-colors">
-          展开详细仪表盘
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-[#C7A56A]">AI 战略简报</h3>
+          <button
+            onClick={handleGenerateBriefing}
+            disabled={isGeneratingBriefing}
+            className="px-3 py-1.5 bg-[#C7A56A]/10 border border-[#C7A56A]/30 rounded-lg text-[#C7A56A] text-xs font-medium hover:bg-[#C7A56A]/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isGeneratingBriefing ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <Sparkles size={12} />
+                生成简报
+              </>
+            )}
+          </button>
+        </div>
+
+        {briefing ? (
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed text-white">
+              {briefing.summary}
+            </p>
+            
+            {briefing.highlights.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-[#C7A56A]">✨ 亮点</p>
+                {briefing.highlights.map((highlight, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                    <CheckCircle2 size={12} className="text-emerald-400 mt-0.5 shrink-0" />
+                    <span>{highlight}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {briefing.recommendations.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-[#C7A56A]">💡 建议</p>
+                {briefing.recommendations.map((rec, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                    <Zap size={12} className="text-amber-400 mt-0.5 shrink-0" />
+                    <span>{rec}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[10px] text-slate-500 pt-2">
+              生成于 {new Date(briefing.generatedAt).toLocaleString('zh-CN')}
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed text-slate-300">
+            点击"生成简报"获取 AI 战略分析
+          </p>
+        )}
 
         {/* Module Quick Links */}
         <div className="flex gap-3 mt-6 pt-6 border-t border-white/10">
@@ -144,25 +307,35 @@ export default function StrategicHomePage() {
         <div className="bg-[#FFFCF6] rounded-[2rem] border border-[#E7E0D3] p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-[#0B1B2B]">待您拍板推进</h3>
-            <button className="text-xs text-[#C7A56A] hover:underline">查看全部</button>
+            <Link href="/c/hub" className="text-xs text-[#C7A56A] hover:underline flex items-center gap-1">
+              查看全部
+              <ArrowUpRight size={12} />
+            </Link>
           </div>
           
-          {pendingActions.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">暂无待决策事项</p>
+          {actions.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle2 size={40} className="text-emerald-300 mx-auto mb-3" />
+              <p className="text-sm text-slate-500">太棒了！没有待决策事项</p>
+            </div>
           ) : (
             <div className="space-y-3">
-              {pendingActions.map((action) => (
+              {actions.map((action) => (
                 <div key={action.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#E7E0D3]">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                    action.priority === 'P0' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
-                  }`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getPriorityStyle(action.priority)}`}>
                     {action.priority}
                   </span>
-                  <span className="flex-1 text-sm text-[#0B1B2B]">{action.title}</span>
-                  <span className="text-xs text-slate-400">{action.action}</span>
-                  <button className="px-3 py-1.5 bg-[#C7A56A] text-[#0B1B2B] text-xs font-bold rounded-lg hover:bg-[#C7A56A]/90 transition-colors">
-                    拍板
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-[#0B1B2B] block truncate">{action.title}</span>
+                    <span className="text-[10px] text-slate-400">{action.module}</span>
+                  </div>
+                  <Link 
+                    href={action.actionLink}
+                    className="px-3 py-1.5 bg-[#C7A56A] text-[#0B1B2B] text-xs font-bold rounded-lg hover:bg-[#C7A56A]/90 transition-colors flex items-center gap-1"
+                  >
+                    {action.action}
+                    <ChevronRight size={12} />
+                  </Link>
                 </div>
               ))}
             </div>
