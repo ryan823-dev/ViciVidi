@@ -1,0 +1,509 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  FileEdit,
+  Plus,
+  Search,
+  Loader2,
+  RefreshCw,
+  Target,
+  Users,
+  Sparkles,
+  MoreHorizontal,
+  Trash2,
+  Edit,
+  ArrowRight,
+  Filter,
+} from "lucide-react";
+import {
+  getBriefs,
+  getBriefStats,
+  createBrief,
+  deleteBrief,
+  generateBriefFromPersona,
+  type BriefListItem,
+  type SearchIntent,
+} from "@/actions/briefs";
+import { getPersonasBySegment } from "@/actions/personas";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+
+type PersonaItem = {
+  id: string;
+  name: string;
+  title: string;
+};
+
+const INTENT_LABELS: Record<string, string> = {
+  informational: "信息查询",
+  commercial: "商业调研",
+  transactional: "交易决策",
+  navigational: "品牌导航",
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  draft: { label: "草稿", color: "bg-slate-500" },
+  ready: { label: "就绪", color: "bg-blue-500" },
+  in_progress: { label: "进行中", color: "bg-amber-500" },
+  done: { label: "已完成", color: "bg-emerald-500" },
+};
+
+export default function BriefsPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [briefs, setBriefs] = useState<BriefListItem[]>([]);
+  const [stats, setStats] = useState({ total: 0, draft: 0, ready: 0, inProgress: 0, done: 0 });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [personas, setPersonas] = useState<PersonaItem[]>([]);
+
+  // Dialog states
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    title: "",
+    targetKeywords: "",
+    intent: "informational" as SearchIntent,
+    targetPersonaId: "",
+    notes: "",
+  });
+  const [selectedPersonaForAI, setSelectedPersonaForAI] = useState("");
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const filters: { status?: string; search?: string } = {};
+      if (statusFilter !== "all") filters.status = statusFilter;
+      if (search.trim()) filters.search = search.trim();
+
+      const [briefsData, statsData, personasData] = await Promise.all([
+        getBriefs(filters),
+        getBriefStats(),
+        getPersonasBySegment(),
+      ]);
+      setBriefs(briefsData);
+      setStats(statsData);
+      setPersonas(personasData.map(p => ({ id: p.id, name: p.name, title: p.title })));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "加载数据失败");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [statusFilter, search]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleCreate = async () => {
+    if (!formData.title.trim()) {
+      toast.error("请输入标题");
+      return;
+    }
+    if (!formData.targetKeywords.trim()) {
+      toast.error("请输入目标关键词");
+      return;
+    }
+    setIsCreating(true);
+    try {
+      await createBrief({
+        title: formData.title,
+        targetKeywords: formData.targetKeywords.split(",").map(k => k.trim()).filter(Boolean),
+        intent: formData.intent,
+        targetPersonaId: formData.targetPersonaId || undefined,
+        notes: formData.notes || undefined,
+      });
+      toast.success("内容规划已创建");
+      setShowCreateDialog(false);
+      setFormData({ title: "", targetKeywords: "", intent: "informational", targetPersonaId: "", notes: "" });
+      loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "创建失败");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!selectedPersonaForAI) {
+      toast.error("请选择一个买家角色");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      await generateBriefFromPersona(selectedPersonaForAI);
+      toast.success("AI 已生成内容规划");
+      setShowAIDialog(false);
+      setSelectedPersonaForAI("");
+      loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "AI 生成失败");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("确定删除此内容规划？")) return;
+    try {
+      await deleteBrief(id);
+      toast.success("已删除");
+      loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除失败");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#070E15]">
+      {/* Header */}
+      <div className="border-b border-[#10263B]/50 bg-[#0B1B2B]/50">
+        <div className="px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#C7A56A]/20 to-[#C7A56A]/5 border border-[#C7A56A]/20 flex items-center justify-center">
+                <FileEdit className="w-6 h-6 text-[#C7A56A]" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">内容规划 (Brief)</h1>
+                <p className="text-sm text-slate-500 mt-0.5">规划内容方向，驱动 AI 生成精准内容</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAIDialog(true)}
+                className="border-[#C7A56A]/30 text-[#C7A56A] hover:bg-[#C7A56A]/10"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI 生成
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-[#C7A56A] text-[#0B1B2B] hover:bg-[#C7A56A]/90"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                新建规划
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-5 gap-4 mt-6">
+            {[
+              { label: "全部", value: stats.total, color: "text-slate-400" },
+              { label: "草稿", value: stats.draft, color: "text-slate-400" },
+              { label: "就绪", value: stats.ready, color: "text-blue-400" },
+              { label: "进行中", value: stats.inProgress, color: "text-amber-400" },
+              { label: "已完成", value: stats.done, color: "text-emerald-400" },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-[#10263B]/30 rounded-lg px-4 py-3 border border-[#10263B]/50"
+              >
+                <p className="text-xs text-slate-500">{stat.label}</p>
+                <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="px-8 py-4 border-b border-[#10263B]/30">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Input
+              placeholder="搜索关键词或标题..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-[#10263B]/30 border-[#10263B] text-white placeholder:text-slate-600"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32 bg-[#10263B]/30 border-[#10263B] text-white">
+              <Filter className="w-4 h-4 mr-2 text-slate-500" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0B1B2B] border-[#10263B]">
+              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="draft">草稿</SelectItem>
+              <SelectItem value="ready">就绪</SelectItem>
+              <SelectItem value="in_progress">进行中</SelectItem>
+              <SelectItem value="done">已完成</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="icon" onClick={loadData} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 text-slate-500 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-8 py-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-[#C7A56A] animate-spin" />
+          </div>
+        ) : briefs.length === 0 ? (
+          <div className="text-center py-20">
+            <FileEdit className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-400">暂无内容规划</h3>
+            <p className="text-sm text-slate-600 mt-1">创建第一个 Brief 开始内容生产</p>
+            <Button
+              size="sm"
+              onClick={() => setShowCreateDialog(true)}
+              className="mt-4 bg-[#C7A56A] text-[#0B1B2B] hover:bg-[#C7A56A]/90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              新建规划
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {briefs.map((brief) => {
+              const statusConf = STATUS_CONFIG[brief.status] || STATUS_CONFIG.draft;
+              return (
+                <div
+                  key={brief.id}
+                  className="bg-[#10263B]/30 border border-[#10263B]/50 rounded-xl p-5 hover:border-[#C7A56A]/30 transition-colors group"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-base font-semibold text-white group-hover:text-[#C7A56A] transition-colors">
+                          {brief.title}
+                        </h3>
+                        <span
+                          className={`px-2 py-0.5 text-[10px] font-medium rounded-full text-white ${statusConf.color}`}
+                        >
+                          {statusConf.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                          <Target className="w-3.5 h-3.5" />
+                          {brief.targetKeywords.slice(0, 3).join(", ")}
+                          {brief.targetKeywords.length > 3 && ` +${brief.targetKeywords.length - 3}`}
+                        </span>
+                        <span className="px-2 py-0.5 bg-[#10263B] rounded text-xs">
+                          {INTENT_LABELS[brief.intent] || brief.intent}
+                        </span>
+                        {brief.targetPersonaName && (
+                          <span className="flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5" />
+                            {brief.targetPersonaName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-500 hover:text-[#C7A56A]"
+                      >
+                        生成内容
+                        <ArrowRight className="w-4 h-4 ml-1" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-slate-500">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-[#0B1B2B] border-[#10263B]">
+                          <DropdownMenuItem className="text-slate-300 focus:bg-[#10263B] focus:text-white">
+                            <Edit className="w-4 h-4 mr-2" />
+                            编辑
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-400 focus:bg-red-500/10 focus:text-red-400"
+                            onClick={() => handleDelete(brief.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Create Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="bg-[#0B1B2B] border-[#10263B] text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">新建内容规划</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-slate-400">标题 *</Label>
+              <Input
+                placeholder="输入内容规划标题"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="bg-[#10263B]/50 border-[#10263B] text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-400">目标关键词 *（逗号分隔）</Label>
+              <Input
+                placeholder="关键词1, 关键词2, 关键词3"
+                value={formData.targetKeywords}
+                onChange={(e) => setFormData({ ...formData, targetKeywords: e.target.value })}
+                className="bg-[#10263B]/50 border-[#10263B] text-white"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-400">搜索意图</Label>
+                <Select
+                  value={formData.intent}
+                  onValueChange={(v) => setFormData({ ...formData, intent: v as SearchIntent })}
+                >
+                  <SelectTrigger className="bg-[#10263B]/50 border-[#10263B] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0B1B2B] border-[#10263B]">
+                    <SelectItem value="informational">信息查询</SelectItem>
+                    <SelectItem value="commercial">商业调研</SelectItem>
+                    <SelectItem value="transactional">交易决策</SelectItem>
+                    <SelectItem value="navigational">品牌导航</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-400">关联 Persona</Label>
+                <Select
+                  value={formData.targetPersonaId}
+                  onValueChange={(v) => setFormData({ ...formData, targetPersonaId: v })}
+                >
+                  <SelectTrigger className="bg-[#10263B]/50 border-[#10263B] text-white">
+                    <SelectValue placeholder="选择角色" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0B1B2B] border-[#10263B]">
+                    <SelectItem value="">无</SelectItem>
+                    {personas.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-400">备注（可选）</Label>
+              <Textarea
+                placeholder="描述内容方向和要求..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="bg-[#10263B]/50 border-[#10263B] text-white resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowCreateDialog(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={isCreating}
+              className="bg-[#C7A56A] text-[#0B1B2B] hover:bg-[#C7A56A]/90"
+            >
+              {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              创建
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Generate Dialog */}
+      <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+        <DialogContent className="bg-[#0B1B2B] border-[#10263B] text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#C7A56A]" />
+              AI 生成内容规划
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-400 mb-4">
+              选择一个买家角色，AI 将根据其特征自动生成针对性的内容规划。
+            </p>
+            <div className="space-y-2">
+              <Label className="text-slate-400">选择买家角色</Label>
+              <Select value={selectedPersonaForAI} onValueChange={setSelectedPersonaForAI}>
+                <SelectTrigger className="bg-[#10263B]/50 border-[#10263B] text-white">
+                  <SelectValue placeholder="选择角色" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0B1B2B] border-[#10263B]">
+                  {personas.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} - {p.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {personas.length === 0 && (
+              <p className="text-xs text-amber-400 mt-3">
+                暂无买家角色，请先在知识引擎 &gt; 人设中心创建。
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAIDialog(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={handleAIGenerate}
+              disabled={isGenerating || !selectedPersonaForAI}
+              className="bg-[#C7A56A] text-[#0B1B2B] hover:bg-[#C7A56A]/90"
+            >
+              {isGenerating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              生成规划
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
