@@ -21,6 +21,10 @@ import {
   Tag,
   ChevronRight,
   ArrowRight,
+  Globe,
+  ExternalLink,
+  RotateCcw,
+  Timer,
 } from 'lucide-react';
 import {
   getContents,
@@ -34,6 +38,16 @@ import {
   type MarketingStats,
   type KeywordSuggestion,
 } from '@/actions/marketing';
+import {
+  pushContentToWebsite,
+  getPushRecords,
+  confirmPushRecord,
+  retryPush,
+  getWebsiteConfig,
+  type PushRecordData,
+  type WebsiteConfigData,
+} from '@/actions/publishing';
+import { SkillPanel } from '@/components/skills';
 
 type ViewMode = 'list' | 'create' | 'detail';
 
@@ -59,17 +73,26 @@ export default function MarketingPage() {
     metaDescription: string;
   } | null>(null);
 
+  // 推送状态
+  const [websiteConfig, setWebsiteConfig] = useState<WebsiteConfigData | null>(null);
+  const [pushRecords, setPushRecords] = useState<PushRecordData[]>([]);
+  const [isPushing, setIsPushing] = useState(false);
+
   // 加载数据
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [contentsData, statsData] = await Promise.all([
+      const [contentsData, statsData, configData, pushData] = await Promise.all([
         getContents(),
         getMarketingStats(),
+        getWebsiteConfig(),
+        getPushRecords(),
       ]);
       setContents(contentsData);
       setStats(statsData);
+      setWebsiteConfig(configData);
+      setPushRecords(pushData);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载数据失败');
     } finally {
@@ -171,6 +194,60 @@ export default function MarketingPage() {
     } catch (err) {
       setError('删除失败');
     }
+  };
+
+  // 推送到官网
+  const handlePushToWebsite = async (contentId: string) => {
+    setIsPushing(true);
+    setError(null);
+    try {
+      const result = await pushContentToWebsite(contentId);
+      if (result.success) {
+        // 刷新推送记录
+        const freshRecords = await getPushRecords();
+        setPushRecords(freshRecords);
+        // 刷新内容列表（状态可能变为 published）
+        const freshContents = await getContents();
+        setContents(freshContents);
+        if (selectedContent?.id === contentId) {
+          const updated = freshContents.find(c => c.id === contentId);
+          if (updated) setSelectedContent(updated);
+        }
+      } else {
+        setError(result.error || '推送失败');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '推送失败');
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
+  // 确认推送
+  const handleConfirmPush = async (recordId: string) => {
+    const result = await confirmPushRecord(recordId);
+    if (result.success) {
+      const freshRecords = await getPushRecords();
+      setPushRecords(freshRecords);
+    }
+  };
+
+  // 重试推送
+  const handleRetryPush = async (recordId: string) => {
+    setIsPushing(true);
+    try {
+      const result = await retryPush(recordId);
+      if (!result.success) setError(result.error || '重试失败');
+      const freshRecords = await getPushRecords();
+      setPushRecords(freshRecords);
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
+  // 获取内容的推送记录
+  const getPushRecordForContent = (contentId: string) => {
+    return pushRecords.find(r => r.contentId === contentId);
   };
 
   // 获取状态标签
@@ -562,6 +639,135 @@ export default function MarketingPage() {
                       })}
                     </div>
                   </div>
+                </div>
+
+                {/* 推送到官网 */}
+                {websiteConfig && websiteConfig.isActive && (
+                  <div className="bg-[#FFFCF6] rounded-2xl border border-[#E7E0D3] p-6">
+                    <h3 className="font-bold text-[#0B1B2B] mb-3 flex items-center gap-2">
+                      <Globe size={16} className="text-[#C7A56A]" />
+                      推送到官网
+                    </h3>
+
+                    {(() => {
+                      const pushRecord = getPushRecordForContent(selectedContent.id);
+
+                      if (!pushRecord) {
+                        // 未推送
+                        return (
+                          <div>
+                            <p className="text-xs text-slate-500 mb-3">
+                              将此内容推送到 {websiteConfig.url || '客户官网'}
+                            </p>
+                            <button
+                              onClick={() => handlePushToWebsite(selectedContent.id)}
+                              disabled={isPushing}
+                              className="w-full py-2.5 bg-gradient-to-r from-[#0B1B2B] to-[#152942] text-[#C7A56A] rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 hover:shadow-md transition-all"
+                            >
+                              {isPushing ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  推送中...
+                                </>
+                              ) : (
+                                <>
+                                  <Send size={14} />
+                                  推送到官网
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      // 有推送记录 - 显示状态
+                      const statusMap: Record<string, { label: string; color: string; bg: string }> = {
+                        PENDING: { label: '已推送·等待确认', color: 'text-blue-600', bg: 'bg-blue-50' },
+                        CONFIRMED: { label: '已确认发布', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        TIMEOUT: { label: '超时未确认', color: 'text-amber-600', bg: 'bg-amber-50' },
+                        FAILED: { label: '推送失败', color: 'text-red-600', bg: 'bg-red-50' },
+                        ESCALATED: { label: '已升级处理', color: 'text-purple-600', bg: 'bg-purple-50' },
+                      };
+                      const st = statusMap[pushRecord.status] || statusMap.PENDING;
+
+                      return (
+                        <div className="space-y-3">
+                          {/* 状态标签 */}
+                          <div className={`px-3 py-2 rounded-lg ${st.bg} flex items-center justify-between`}>
+                            <span className={`text-xs font-medium ${st.color}`}>{st.label}</span>
+                            {pushRecord.status === 'PENDING' && (
+                              <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                <Timer size={10} />
+                                {new Date(pushRecord.timeoutAt).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 前
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 推送详情 */}
+                          <div className="text-[10px] text-slate-400 space-y-1">
+                            <div>推送时间: {new Date(pushRecord.pushedAt).toLocaleString('zh-CN')}</div>
+                            {pushRecord.remoteSlug && (
+                              <div>远程Slug: {pushRecord.remoteSlug}</div>
+                            )}
+                            {pushRecord.retryCount > 0 && (
+                              <div>重试次数: {pushRecord.retryCount}</div>
+                            )}
+                            {pushRecord.lastError && (
+                              <div className="text-red-400">错误: {pushRecord.lastError}</div>
+                            )}
+                          </div>
+
+                          {/* 操作按钮 */}
+                          <div className="flex gap-2">
+                            {pushRecord.targetUrl && (
+                              <a
+                                href={pushRecord.targetUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors"
+                              >
+                                <ExternalLink size={12} />
+                                查看
+                              </a>
+                            )}
+                            {(pushRecord.status === 'PENDING' || pushRecord.status === 'TIMEOUT') && (
+                              <button
+                                onClick={() => handleConfirmPush(pushRecord.id)}
+                                className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
+                              >
+                                <CheckCircle2 size={12} />
+                                确认发布
+                              </button>
+                            )}
+                            {(pushRecord.status === 'FAILED' || pushRecord.status === 'TIMEOUT') && (
+                              <button
+                                onClick={() => handleRetryPush(pushRecord.id)}
+                                disabled={isPushing}
+                                className="flex-1 py-2 bg-[#0B1B2B] text-[#C7A56A] rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 hover:bg-[#10263B] transition-colors"
+                              >
+                                <RotateCcw size={12} />
+                                重新推送
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* AI Skills Panel */}
+                <div className="bg-[#FFFCF6] rounded-2xl border border-[#E7E0D3] p-6">
+                  <SkillPanel
+                    engine="marketing"
+                    entityType="Content"
+                    entityId={selectedContent.id}
+                    input={{ title: selectedContent.title, keywords: selectedContent.keywords }}
+                    onSkillComplete={(skillName, versionId) => {
+                      console.log(`Skill ${skillName} completed with version ${versionId}`);
+                      loadData();
+                    }}
+                  />
                 </div>
               </>
             ) : (

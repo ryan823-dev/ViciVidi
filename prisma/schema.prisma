@@ -56,8 +56,71 @@ model WebsiteConfig {
   apiKey          String?
   publishEndpoint String?
   seoDefaults     Json     @default("{}")
+
+  // === Publishing Pipeline 扩展 ===
+  siteType        String   @default("supabase") // supabase | wordpress | custom
+  supabaseUrl     String?  // e.g. "https://xxx.supabase.co"
+  functionName    String?  // e.g. "receive-content-push"
+  pushSecret      String?  // 加密存储的 shared secret
+  fieldMapping    Json     @default("{}") // Vertax → 目标站字段映射
+  approvalTimeoutHours Int @default(24)
+  isActive        Boolean  @default(true)
+
+  pushRecords     PushRecord[]
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ==================== CONTENT PUSH PIPELINE ====================
+
+enum PushStatus {
+  PENDING     // 已推送，等待客户站点审核
+  CONFIRMED   // 客户站点已确认发布
+  TIMEOUT     // 超时未确认
+  FAILED      // 推送失败
+  ESCALATED   // 已升级到运营处理
+}
+
+model PushRecord {
+  id              String     @id @default(cuid())
+  tenantId        String
+
+  // 关联内容
+  contentId       String     // SeoContent.id
+  content         SeoContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  // 目标站点
+  websiteConfigId String
+  websiteConfig   WebsiteConfig @relation(fields: [websiteConfigId], references: [id], onDelete: Cascade)
+
+  // 推送状态
+  status          PushStatus @default(PENDING)
+  remoteId        String?    // 目标站点返回的记录 ID
+  remoteSlug      String?    // 目标站点的 slug
+  targetUrl       String?    // 目标站点上的完整 URL
+
+  // 字段快照（推送时的映射结果）
+  pushPayload     Json?      // 实际发送的 payload 快照
+
+  // 时间追踪
+  pushedAt        DateTime   @default(now())
+  timeoutAt       DateTime   // pushedAt + approvalTimeoutHours
+  confirmedAt     DateTime?
+  escalatedAt     DateTime?
+
+  // 错误处理
+  retryCount      Int        @default(0)
+  lastError       String?
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([tenantId, status])
+  @@index([contentId])
+  @@index([websiteConfigId])
+  @@index([status, timeoutAt])
+  @@unique([contentId, websiteConfigId]) // 每个内容每个站点只有一条推送记录
 }
 
 model User {
@@ -301,6 +364,7 @@ model SeoContent {
   outline      Json?          // { sections: [{ heading, keyPoints }] }
   evidenceRefs String[]       // 引用的 Evidence id
   schemaJson   Json?          // Schema.org 结构化数据
+  pushRecords  PushRecord[]   // 推送记录
 
   @@unique([tenantId, slug])
   @@index([tenantId])
