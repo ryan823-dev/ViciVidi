@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function RootPage() {
-  redirect("/zh-CN/dashboard");
+  redirect("/zh-CN/c/home");
 }

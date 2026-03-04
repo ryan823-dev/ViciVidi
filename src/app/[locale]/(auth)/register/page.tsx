@@ -59,7 +59,7 @@ export default function RegisterPage() {
       if (result?.error) {
         router.push("/zh-CN/login");
       } else {
-        router.push("/zh-CN/dashboard");
+        router.push("/zh-CN/c/home");
         router.refresh();
       }
     } catch {
