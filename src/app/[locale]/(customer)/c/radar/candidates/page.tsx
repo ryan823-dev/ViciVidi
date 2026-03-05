@@ -115,7 +115,7 @@ export default function RadarCandidatesPage() {
           limit: 100,
         }),
         getRadarStatsV2(),
-        getRadarPipelineStatus(),
+        getRadarPipelineStatus().catch(() => null),
       ]);
       setCandidates(result.candidates);
       setTotal(result.total);
@@ -215,7 +215,7 @@ export default function RadarCandidatesPage() {
     return type === 'OPPORTUNITY' ? FileText : Building2;
   };
 
-  if (isLoading || !pipelineStatus) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
@@ -223,7 +223,18 @@ export default function RadarCandidatesPage() {
     );
   }
 
-  const { steps, counts, currentStep, primaryCTA, errors } = pipelineStatus;
+  const steps = pipelineStatus?.steps ?? [];
+  const counts = pipelineStatus?.counts ?? {
+    profilesActiveCount: 0, sourcesConfiguredCount: 0,
+    candidatesNew7d: 0, candidatesQualifiedAB7d: 0, candidatesImported7d: 0, candidatesEnriching: 0,
+    lastScanAt: null, lastErrorBrief: null,
+    pendingReviewCount: 0, pendingApprovalsCount: 0, enrichPendingCount: 0,
+    targetingSpecExists: false, targetingSpecFresh: false, targetingSpecUpdatedAt: null,
+    outreachPackGenerated7d: 0, lastUpdatedAt: null,
+  };
+  const currentStep = pipelineStatus?.currentStep ?? 1;
+  const primaryCTA = pipelineStatus?.primaryCTA ?? undefined;
+  const errors = pipelineStatus?.errors ?? [];
 
   // 空态类型判断
   const emptyStateType = candidates.length === 0 
