@@ -199,7 +199,7 @@ export default function KnowledgeAssetsPage() {
                 </span>
               </div>
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                支持 PDF、Word、PPT、Excel · 单文件最大 50MB · 上传后自动解析构建知识图谱
+                支持 PDF、Word、PPT、Excel、MP4/MOV/AVI 视频 · 单文件最大 50MB · 上传后自动解析
               </p>
             </div>
 
@@ -263,7 +263,7 @@ export default function KnowledgeAssetsPage() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.mov,.avi,.webm,.mkv"
             className="hidden"
             onChange={handleFileSelect}
           />

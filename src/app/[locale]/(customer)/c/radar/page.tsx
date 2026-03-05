@@ -55,7 +55,7 @@ export default function RadarPage() {
     
     setError(null);
     try {
-      const status = await getRadarPipelineStatus();
+      const status = await getRadarPipelineStatus().catch(() => null);
       setPipelineStatus(status);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载状态失败');
@@ -83,40 +83,74 @@ export default function RadarPage() {
     );
   }
 
-  // pipeline 加载失败时显示错误提示和基础导航
-  if (!pipelineStatus && pipelineLoaded) {
+  // pipeline 加载失败或 null：降级为纯快捷入口页面（仍可用）
+  if (!pipelineStatus) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] p-6 space-y-6">
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-            <AlertTriangle className="text-red-500 shrink-0" size={20} />
-            <p className="text-sm text-red-700 flex-1">{error}</p>
-            <button 
-              onClick={() => loadPipelineStatus()} 
-              className="text-red-600 hover:text-red-800 text-sm font-medium"
-            >
-              重试
-            </button>
+      <div className="min-h-screen" style={{background: 'linear-gradient(180deg, #0B1220 0%, #0A1018 100%)'}}>
+        {/* 舞台标题区 */}
+        <div className="relative px-6 pt-8 pb-6 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none" style={{background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(212,175,55,0.12) 0%, transparent 65%)'}} />
+          <div className="flex items-center gap-3 mb-1">
+            <Radar size={22} className="text-[#D4AF37]" />
+            <h1 className="text-xl font-bold text-white">获客雷达</h1>
           </div>
-        )}
-        <div className="bg-[#FFFCF7] rounded-2xl border border-[#E8E0D0] p-5">
-          <h3 className="font-bold text-[#0B1B2B] mb-4">快捷入口</h3>
-          <div className="grid grid-cols-4 gap-4">
+          <p className="text-sm text-slate-400 ml-9">AI驱动的全球潜在客户智能发现系统</p>
+          {error && (
+            <div className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+              <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+              <span className="text-xs text-amber-300 flex-1">{error}</span>
+              <button onClick={() => loadPipelineStatus()} className="text-xs text-amber-400 hover:text-amber-200 font-medium">重试</button>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-8 space-y-6">
+          {/* 快速入口卡片组 */}
+          <div className="grid grid-cols-2 gap-4">
             {radarModules.map((mod) => (
               <Link
                 key={mod.label}
                 href={mod.href}
-                className="p-4 rounded-xl border border-[#E8E0D0] hover:border-[#D4AF37]/50 hover:shadow-md transition-all group bg-[#FFFCF7]"
+                className="group flex items-center gap-4 p-5 rounded-2xl border transition-all hover:scale-[1.01]"
+                style={{background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)'}}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-9 h-9 bg-[#F0EBD8] rounded-lg flex items-center justify-center group-hover:bg-[#D4AF37]/10 transition-colors">
-                    <mod.icon size={18} className="text-[#D4AF37]" />
-                  </div>
-                  <h4 className="font-medium text-[#0B1B2B]">{mod.label}</h4>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
+                  style={{background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)'}}>
+                  <mod.icon size={22} className="text-[#D4AF37]" />
                 </div>
-                <p className="text-xs text-slate-500">{mod.description}</p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-white">{mod.label}</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">{mod.description}</p>
+                </div>
+                <ChevronRight size={16} className="text-slate-600 group-hover:text-[#D4AF37] transition-colors shrink-0" />
               </Link>
             ))}
+          </div>
+
+          {/* 起步引导 */}
+          <div className="rounded-2xl p-6" style={{background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)'}}>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles size={16} className="text-[#D4AF37]" />
+              <h3 className="font-bold text-[#D4AF37]">五步启动获客雷达</h3>
+            </div>
+            <div className="grid grid-cols-5 gap-3">
+              {[
+                { step: 1, label: '画像与规则', href: '/c/knowledge/profiles', icon: Target },
+                { step: 2, label: '数据源渠道', href: '/c/radar/channels', icon: Radar },
+                { step: 3, label: '启动扫描', href: '/c/radar/tasks', icon: Zap },
+                { step: 4, label: '候选分层', href: '/c/radar/candidates', icon: Users },
+                { step: 5, label: '导入外联', href: '/c/radar/prospects', icon: Building2 },
+              ].map((s) => (
+                <Link key={s.step} href={s.href}
+                  className="group flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-all hover:bg-[rgba(212,175,55,0.08)]">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{background: 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)'}}>
+                    {s.step}
+                  </div>
+                  <span className="text-[11px] text-slate-400 group-hover:text-slate-200 transition-colors leading-tight">{s.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
