@@ -13,6 +13,7 @@
  */
 
 import { prisma } from '../db';
+import { consumeCredits } from '../stripe/billing';
 
 interface IntentSignal {
   workspaceId: string;
@@ -87,9 +88,30 @@ export async function lookupCompanyByIP(
   source: string;
 } | null> {
   try {
-    // Try local IP database first (free)
+    // 1. Try local IP database first (free)
     const localLookup = await localIPLookup(ipAddress);
     if (localLookup && localLookup.company) {
+      // 扣除积分：IP 查询 1 credit/次
+      if (workspaceId) {
+        try {
+          await consumeCredits({
+            userId: workspaceId,
+            featureType: 'intent_detection',
+            quantity: 1,
+            creditsPerUnit: 1,
+            metadata: {
+              action: 'ip_lookup',
+              ipAddress,
+              source: 'local_db',
+              result: localLookup.company,
+            },
+          });
+        } catch (error) {
+          console.error('Failed to consume credits for IP lookup:', error);
+          // 积分扣除失败不影响功能使用
+        }
+      }
+      
       return {
         companyName: localLookup.company,
         domain: localLookup.domain,
@@ -98,15 +120,51 @@ export async function lookupCompanyByIP(
       };
     }
 
-    // Try Clearbit API (if available)
+    // 2. Try Clearbit API (if available)
     const clearbitResult = await clearbitIPLookup(ipAddress);
     if (clearbitResult) {
+      // 扣除积分：付费 API 查询 2 credits/次
+      if (workspaceId) {
+        try {
+          await consumeCredits({
+            userId: workspaceId,
+            featureType: 'intent_detection',
+            quantity: 1,
+            creditsPerUnit: 2,
+            metadata: {
+              action: 'ip_lookup',
+              ipAddress,
+              source: 'clearbit',
+            },
+          });
+        } catch (error) {
+          console.error('Failed to consume credits for Clearbit lookup:', error);
+        }
+      }
       return clearbitResult;
     }
 
-    // Try Hunter.io domain search
+    // 3. Try Hunter.io domain search
     const hunterResult = await hunterDomainSearch(ipAddress);
     if (hunterResult) {
+      // 扣除积分：付费 API 查询 2 credits/次
+      if (workspaceId) {
+        try {
+          await consumeCredits({
+            userId: workspaceId,
+            featureType: 'intent_detection',
+            quantity: 1,
+            creditsPerUnit: 2,
+            metadata: {
+              action: 'ip_lookup',
+              ipAddress,
+              source: 'hunter',
+            },
+          });
+        } catch (error) {
+          console.error('Failed to consume credits for Hunter lookup:', error);
+        }
+      }
       return hunterResult;
     }
 

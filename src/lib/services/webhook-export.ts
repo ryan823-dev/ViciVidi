@@ -13,6 +13,7 @@
  */
 
 import { prisma } from '../db';
+import { consumeCredits } from '../stripe/billing';
 
 interface WebhookConfig {
   id: string;
@@ -300,6 +301,28 @@ export async function sendLeadToWebhooks(
         return result;
       })
     );
+
+    // 扣除积分：按成功发送的 webhook 数量计费，1 credit/条
+    const successfulWebhooks = results.filter(r => r.success).length;
+    if (successfulWebhooks > 0 && workspaceId) {
+      try {
+        await consumeCredits({
+          userId: workspaceId,
+          featureType: 'webhook_export',
+          quantity: successfulWebhooks,
+          creditsPerUnit: 1,
+          metadata: {
+            totalWebhooks: webhooks.length,
+            successful: successfulWebhooks,
+            failed: results.length - successfulWebhooks,
+            leadId: lead.id,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to consume credits for webhook export:', error);
+        // 积分扣除失败不影响 webhook 发送
+      }
+    }
 
     return results;
   } catch (error) {
