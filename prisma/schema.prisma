@@ -586,3 +586,213 @@ model IntentSignal {
   @@index([occurredAt])
   @@map("intent_signals")
 }
+
+// ========== 订阅计费系统 (ViciVidi AI) ==========
+
+// 计费客户信息（与 Stripe Customer 同步）
+model BillingCustomer {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  stripeCustomerId String   @unique @map("stripe_customer_id")
+  stripeEmail      String   @map("stripe_email")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // 关联关系
+  subscriptions     Subscription[]
+  creditLedger      CreditLedger[]
+  allocationPeriods CreditAllocationPeriod[]
+  paymentEvents     PaymentEvent[]
+  invoices          InvoiceRecord[]
+  usageRecords      UsageRecord[]
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@map("billing_customers")
+}
+
+// 订阅记录（与 Stripe Subscription 同步）
+model Subscription {
+  id                   String             @id @default(cuid())
+  billingCustomerId    String             @map("billing_customer_id")
+  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
+  planId               String             @map("plan_id")
+  status               SubscriptionStatus
+  currentPeriodStart   DateTime           @map("current_period_start")
+  currentPeriodEnd     DateTime           @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  canceledAt           DateTime?          @map("canceled_at")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  // 关联关系
+  customer                BillingCustomer          @relation(fields: [billingCustomerId], references: [id], onDelete: Cascade)
+  plan                    PlanDefinition           @relation(fields: [planId], references: [id])
+  paymentEvents           PaymentEvent[]
+  creditLedgers           CreditLedger[]
+  creditAllocationPeriods CreditAllocationPeriod[]
+  usageRecords            UsageRecord[]
+
+  @@index([billingCustomerId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  UNPAID
+  CANCELED
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAUSED
+}
+
+// 套餐定义（本地配置，与 Stripe Products 对应）
+model PlanDefinition {
+  id              String   @id @default(cuid())
+  stripeProductId String   @unique @map("stripe_product_id")
+  stripePriceId   String   @unique @map("stripe_price_id")
+  name            String
+  description     String?
+  monthlyCredits  Int      @default(0) @map("monthly_credits")
+  priceCents      Int      @default(0) @map("price_cents")
+  currency        String   @default("usd")
+  billingInterval String   @default("month") @map("billing_interval") // month | year
+  isActive        Boolean  @default(true) @map("is_active")
+  features        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // 关联关系
+  subscriptions Subscription[]
+
+  @@index([isActive])
+  @@map("plan_definitions")
+}
+
+// 积分账本（审计日志，所有积分变动的完整记录）
+model CreditLedger {
+  id                String     @id @default(cuid())
+  billingCustomerId String     @map("billing_customer_id")
+  subscriptionId    String?    @map("subscription_id")
+  amount            Int // 正数=增加，负数=消耗
+  balanceAfter      Int        @map("balance_after") // 变动后余额
+  type              CreditType
+  description       String
+  metadata          Json?
+  createdAt         DateTime   @default(now())
+
+  // 关联关系
+  customer     BillingCustomer @relation(fields: [billingCustomerId], references: [id], onDelete: Cascade)
+  subscription Subscription?   @relation(fields: [subscriptionId], references: [id])
+
+  @@index([billingCustomerId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("credit_ledger")
+}
+
+enum CreditType {
+  MONTHLY_ALLOCATION // 月度分配
+  BONUS_GRANT // 奖励赠送
+  API_CONSUMPTION // API 调用消耗
+  FEATURE_USAGE // 功能使用消耗
+  REFUND // 退款返还
+  ADJUSTMENT // 人工调整
+}
+
+// 积分分配周期（追踪每月积分发放，防止重复）
+model CreditAllocationPeriod {
+  id                String    @id @default(cuid())
+  billingCustomerId String    @map("billing_customer_id")
+  subscriptionId    String    @map("subscription_id")
+  periodStart       DateTime  @map("period_start")
+  periodEnd         DateTime  @map("period_end")
+  allocatedCredits  Int       @default(0) @map("allocated_credits")
+  consumedCredits   Int       @default(0) @map("consumed_credits")
+  remainingCredits  Int       @default(0) @map("remaining_credits")
+  isProcessed       Boolean   @default(false) @map("is_processed")
+  processedAt       DateTime? @map("processed_at")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // 关联关系
+  customer     BillingCustomer @relation(fields: [billingCustomerId], references: [id], onDelete: Cascade)
+  subscription Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, periodStart])
+  @@index([billingCustomerId])
+  @@index([periodStart, periodEnd])
+  @@map("credit_allocation_periods")
+}
+
+// 支付事件记录（Stripe 支付事件审计）
+model PaymentEvent {
+  id                String   @id @default(cuid())
+  billingCustomerId String   @map("billing_customer_id")
+  subscriptionId    String?  @map("subscription_id")
+  stripeEventId     String   @unique @map("stripe_event_id")
+  stripeInvoiceId   String?  @map("stripe_invoice_id")
+  eventType         String   @map("event_type") // invoice.paid, payment_failed, etc.
+  amountCents       Int      @default(0) @map("amount_cents")
+  currency          String
+  status            String
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  // 关联关系
+  customer     BillingCustomer @relation(fields: [billingCustomerId], references: [id], onDelete: Cascade)
+  subscription Subscription?   @relation(fields: [subscriptionId], references: [id])
+
+  @@index([billingCustomerId])
+  @@index([stripeEventId])
+  @@index([eventType])
+  @@map("payment_events")
+}
+
+// 发票记录（与 Stripe Invoices 同步）
+model InvoiceRecord {
+  id                   String    @id @default(cuid())
+  billingCustomerId    String    @map("billing_customer_id")
+  stripeInvoiceId      String    @unique @map("stripe_invoice_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  amountCents          Int       @default(0) @map("amount_cents")
+  currency             String
+  status               String // paid, open, uncollectible, void
+  dueDate              DateTime? @map("due_date")
+  paidAt               DateTime? @map("paid_at")
+  invoiceUrl           String?   @map("invoice_url")
+  metadata             Json?
+  createdAt            DateTime  @default(now())
+
+  // 关联关系
+  customer BillingCustomer @relation(fields: [billingCustomerId], references: [id], onDelete: Cascade)
+
+  @@index([billingCustomerId])
+  @@index([stripeInvoiceId])
+  @@index([status])
+  @@map("invoice_records")
+}
+
+// 使用量记录（按功能模块追踪使用情况）
+model UsageRecord {
+  id                String   @id @default(cuid())
+  billingCustomerId String   @map("billing_customer_id")
+  subscriptionId    String?  @map("subscription_id")
+  featureType       String   @map("feature_type") // ai_search, intent_detection, webhook_export
+  quantity          Int
+  creditsConsumed   Int      @default(0) @map("credits_consumed")
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  // 关联关系
+  customer     BillingCustomer @relation(fields: [billingCustomerId], references: [id], onDelete: Cascade)
+  subscription Subscription?   @relation(fields: [subscriptionId], references: [id])
+
+  @@index([billingCustomerId])
+  @@index([featureType])
+  @@index([createdAt])
+  @@map("usage_records")
+}
