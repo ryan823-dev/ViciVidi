@@ -51,174 +51,212 @@
   /* ===================================
      ViciVidi AI - 品牌设计系统
      Victory Purple → Victory Red
+     充满活力的专业 B2B SaaS 配色
      =================================== */
   
-  /* 基础色 */
+  /* 基础色 - 增强对比度 */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0.02 320);
+  --foreground: oklch(0.15 0.02 320);
   
-  /* ViciVidi 主题色 - 胜利渐变 */
-  --primary: oklch(0.55 0.25 320);  /* Victory Purple - 紫红色 */
+  /* ViciVidi 主题色 - 胜利渐变 (增强饱和度) */
+  --primary: oklch(0.58 0.28 320);  /* Victory Purple - 更有活力的紫红色 */
   --primary-foreground: oklch(1 0 0);
-  --primary-glow: oklch(0.65 0.28 320);
+  --primary-glow: oklch(0.68 0.30 320);
+  --primary-light: oklch(0.75 0.20 320);
+  --primary-dark: oklch(0.45 0.25 320);
   
   /* Vici Gold - 胜利金 */
-  --vici-gold: oklch(0.75 0.15 75);
-  --vici-gold-foreground: oklch(0.2 0 0);
+  --vici-gold: oklch(0.78 0.16 75);
+  --vici-gold-foreground: oklch(0.15 0 0);
   
   /* Vidi Blue - 洞察蓝 */
-  --vidi-blue: oklch(0.6 0.2 250);
+  --vidi-blue: oklch(0.62 0.22 250);
   --vidi-blue-foreground: oklch(1 0 0);
   
   /* Caesar Engine 古铜金 */
-  --caesar-bronze: oklch(0.55 0.12 65);
-  --caesar-gold: oklch(0.7 0.18 75);
+  --caesar-bronze: oklch(0.58 0.13 65);
+  --caesar-gold: oklch(0.72 0.19 75);
   
-  /* 辅助色 */
-  --secondary: oklch(0.96 0.01 320);
-  --secondary-foreground: oklch(0.3 0.02 320);
-  --accent: oklch(0.95 0.03 320);
-  --accent-foreground: oklch(0.45 0.15 320);
+  /* 辅助色 - 增强层次感 */
+  --secondary: oklch(0.97 0.01 320);
+  --secondary-foreground: oklch(0.25 0.02 320);
+  --accent: oklch(0.96 0.04 320);
+  --accent-foreground: oklch(0.48 0.18 320);
   
-  /* 中性色 */
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
+  /* 中性色 - 微调冷暖 */
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.45 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0 0);
+  --card-foreground: oklch(0.15 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0 0);
-  --border: oklch(0.92 0 0);
-  --input: oklch(0.92 0 0);
-  --ring: oklch(0.55 0.25 320);
+  --popover-foreground: oklch(0.15 0 0);
+  --border: oklch(0.90 0 0);
+  --input: oklch(0.90 0 0);
+  --ring: oklch(0.58 0.28 320);
   
-  /* 功能色 */
-  --success: oklch(0.65 0.18 150);
+  /* 功能色 - 提高饱和度 */
+  --success: oklch(0.68 0.20 150);
   --success-foreground: oklch(0.98 0 0);
-  --warning: oklch(0.75 0.15 75);
-  --warning-foreground: oklch(0.2 0 0);
-  --destructive: oklch(0.6 0.25 25);
+  --warning: oklch(0.78 0.16 75);
+  --warning-foreground: oklch(0.15 0 0);
+  --destructive: oklch(0.62 0.28 25);
   --destructive-foreground: oklch(1 0 0);
-  --info: oklch(0.6 0.2 250);
+  --info: oklch(0.62 0.22 250);
   --info-foreground: oklch(1 0 0);
   
-  /* 图表色 - ViciVidi 渐变 */
-  --chart-1: oklch(0.65 0.28 320);  /* 紫红 */
-  --chart-2: oklch(0.6 0.2 250);    /* 洞察蓝 */
-  --chart-3: oklch(0.7 0.15 75);    /* 胜利金 */
-  --chart-4: oklch(0.65 0.2 150);   /* 成功绿 */
-  --chart-5: oklch(0.55 0.12 65);   /* 古铜金 */
+  /* 图表色 - ViciVidi 渐变 (增强活力) */
+  --chart-1: oklch(0.68 0.30 320);  /* 紫红 - 主色 */
+  --chart-2: oklch(0.62 0.22 250);  /* 洞察蓝 */
+  --chart-3: oklch(0.72 0.16 75);   /* 胜利金 */
+  --chart-4: oklch(0.68 0.22 150);  /* 成功绿 */
+  --chart-5: oklch(0.58 0.13 65);   /* 古铜金 */
   
-  /* 侧边栏 */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.2 0 0);
-  --sidebar-primary: oklch(0.55 0.25 320);
+  /* 侧边栏 - 增强对比 */
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.18 0 0);
+  --sidebar-primary: oklch(0.58 0.28 320);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.95 0.03 320);
-  --sidebar-accent-foreground: oklch(0.45 0.15 320);
-  --sidebar-border: oklch(0.92 0 0);
-  --sidebar-ring: oklch(0.55 0.25 320);
+  --sidebar-accent: oklch(0.96 0.04 320);
+  --sidebar-accent-foreground: oklch(0.48 0.18 320);
+  --sidebar-border: oklch(0.90 0 0);
+  --sidebar-ring: oklch(0.58 0.28 320);
   
   /* 圆角 */
   --radius: 0.75rem;
   
-  /* 阴影 - ViciVidi 光晕 */
-  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.05);
-  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.1), 0 1px 2px -1px oklch(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -4px oklch(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
-  --shadow-glow: 0 0 25px oklch(0.55 0.25 320 / 0.35);
-  --shadow-glow-sm: 0 0 12px oklch(0.55 0.25 320 / 0.25);
-  --shadow-caesar: 0 0 30px oklch(0.55 0.12 65 / 0.3);
+  /* 阴影 - ViciVidi 光晕 (增强光感) */
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.06);
+  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.12), 0 1px 2px -1px oklch(0 0 0 / 0.12);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.12), 0 2px 4px -2px oklch(0 0 0 / 0.12);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.12), 0 4px 6px -4px oklch(0 0 0 / 0.12);
+  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.12), 0 8px 10px -6px oklch(0 0 0 / 0.12);
+  --shadow-2xl: 0 30px 40px -10px oklch(0 0 0 / 0.15);
+  --shadow-glow: 0 0 30px oklch(0.58 0.28 320 / 0.4);
+  --shadow-glow-sm: 0 0 15px oklch(0.58 0.28 320 / 0.3);
+  --shadow-glow-lg: 0 0 40px oklch(0.58 0.28 320 / 0.5);
+  --shadow-caesar: 0 0 35px oklch(0.58 0.13 65 / 0.35);
   
-  /* ViciVidi 渐变系统 */
+  /* ViciVidi 渐变系统 - 增强色彩过渡 */
   --gradient-primary: linear-gradient(135deg, 
-    oklch(0.55 0.25 320),    /* Victory Purple */
-    oklch(0.65 0.28 25)      /* Victory Red */
+    oklch(0.58 0.28 320),    /* Victory Purple */
+    oklch(0.68 0.30 25)      /* Victory Red - 更鲜艳 */
   );
   --gradient-vici: linear-gradient(135deg, 
-    oklch(0.55 0.25 320),    /* Purple */
-    oklch(0.65 0.28 320)     /* Pink-Purple */
+    oklch(0.58 0.28 320),    /* Purple */
+    oklch(0.68 0.30 320),    /* Pink-Purple */
+    oklch(0.68 0.30 25)      /* Red */
+  );
+  --gradient-vici-subtle: linear-gradient(135deg, 
+    oklch(0.75 0.20 320),    /* Light Purple */
+    oklch(0.80 0.15 320)     /* Light Pink */
   );
   --gradient-caesar: linear-gradient(135deg, 
-    oklch(0.55 0.12 65),     /* Bronze */
-    oklch(0.7 0.18 75)       /* Gold */
+    oklch(0.58 0.13 65),     /* Bronze */
+    oklch(0.72 0.19 75)      /* Gold */
   );
-  --gradient-subtle: linear-gradient(180deg, oklch(1 0 0), oklch(0.98 0.01 320));
-  --gradient-card: linear-gradient(135deg, oklch(1 0 0), oklch(0.99 0.01 320));
-  --gradient-success: linear-gradient(135deg, oklch(0.65 0.18 150), oklch(0.7 0.2 150));
-  --gradient-warning: linear-gradient(135deg, oklch(0.75 0.15 75), oklch(0.8 0.18 75));
-  --gradient-destructive: linear-gradient(135deg, oklch(0.6 0.25 25), oklch(0.65 0.28 25));
+  --gradient-subtle: linear-gradient(180deg, oklch(1 0 0), oklch(0.985 0.02 320));
+  --gradient-card: linear-gradient(135deg, oklch(1 0 0), oklch(0.995 0.01 320));
+  --gradient-card-hover: linear-gradient(135deg, oklch(1 0 0), oklch(0.99 0.02 320));
+  --gradient-success: linear-gradient(135deg, oklch(0.68 0.20 150), oklch(0.72 0.22 150));
+  --gradient-warning: linear-gradient(135deg, oklch(0.78 0.16 75), oklch(0.82 0.18 75));
+  --gradient-destructive: linear-gradient(135deg, oklch(0.62 0.28 25), oklch(0.68 0.30 25));
+  --gradient-hero: linear-gradient(135deg, 
+    oklch(0.98 0.02 320),
+    oklch(1 0 0),
+    oklch(0.99 0.01 25)
+  );
   
-  /* 动画 */
+  /* 动画 - 增强弹性 */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --transition-fade: all 0.2s ease-in-out;
   --transition-vici: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-spring: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .dark {
-  /* 深色模式 - 专业暗色主题 */
-  --background: oklch(0.15 0.02 285);
-  --foreground: oklch(0.95 0 0);
+  /* 深色模式 - 增强对比与活力 */
+  --background: oklch(0.14 0.02 320);
+  --foreground: oklch(0.96 0 0);
   
-  --primary: oklch(0.65 0.25 285);
+  --primary: oklch(0.68 0.28 320);  /* 更亮的紫红色 */
   --primary-foreground: oklch(1 0 0);
-  --primary-glow: oklch(0.75 0.3 285);
+  --primary-glow: oklch(0.78 0.32 320);
+  --primary-light: oklch(0.80 0.22 320);
+  --primary-dark: oklch(0.52 0.28 320);
   
-  --secondary: oklch(0.25 0.02 285);
-  --secondary-foreground: oklch(0.95 0 0);
-  --accent: oklch(0.25 0.05 250);
-  --accent-foreground: oklch(0.75 0.2 250);
+  --secondary: oklch(0.22 0.02 320);
+  --secondary-foreground: oklch(0.96 0 0);
+  --accent: oklch(0.25 0.06 320);
+  --accent-foreground: oklch(0.78 0.22 320);
   
-  --muted: oklch(0.25 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --card: oklch(0.2 0.02 285);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.2 0.02 285);
-  --popover-foreground: oklch(0.95 0 0);
-  --border: oklch(1 0 0 / 15%);
-  --input: oklch(1 0 0 / 20%);
-  --ring: oklch(0.65 0.25 285);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --card: oklch(0.18 0.02 320);
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.18 0.02 320);
+  --popover-foreground: oklch(0.96 0 0);
+  --border: oklch(1 0 0 / 18%);
+  --input: oklch(1 0 0 / 22%);
+  --ring: oklch(0.68 0.28 320);
   
-  --success: oklch(0.7 0.2 150);
-  --success-foreground: oklch(0.15 0 0);
-  --warning: oklch(0.8 0.18 75);
-  --warning-foreground: oklch(0.15 0 0);
-  --destructive: oklch(0.65 0.28 25);
+  --success: oklch(0.72 0.22 150);
+  --success-foreground: oklch(0.14 0 0);
+  --warning: oklch(0.82 0.18 75);
+  --warning-foreground: oklch(0.14 0 0);
+  --destructive: oklch(0.68 0.30 25);
   --destructive-foreground: oklch(1 0 0);
-  --info: oklch(0.7 0.2 250);
+  --info: oklch(0.72 0.22 250);
   --info-foreground: oklch(1 0 0);
   
-  --chart-1: oklch(0.75 0.25 285);
-  --chart-2: oklch(0.7 0.2 250);
-  --chart-3: oklch(0.75 0.15 200);
-  --chart-4: oklch(0.7 0.2 150);
-  --chart-5: oklch(0.8 0.15 75);
+  --chart-1: oklch(0.78 0.30 320);
+  --chart-2: oklch(0.72 0.22 250);
+  --chart-3: oklch(0.78 0.18 75);
+  --chart-4: oklch(0.72 0.22 150);
+  --chart-5: oklch(0.68 0.15 65);
   
-  --sidebar: oklch(0.18 0.02 285);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.65 0.25 285);
+  --sidebar: oklch(0.16 0.02 320);
+  --sidebar-foreground: oklch(0.96 0 0);
+  --sidebar-primary: oklch(0.68 0.28 320);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.25 0.05 285);
-  --sidebar-accent-foreground: oklch(0.85 0.2 285);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.65 0.25 285);
+  --sidebar-accent: oklch(0.22 0.05 320);
+  --sidebar-accent-foreground: oklch(0.88 0.22 320);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.68 0.28 320);
   
-  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.3);
-  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.4), 0 1px 2px -1px oklch(0 0 0 / 0.4);
-  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.4), 0 2px 4px -2px oklch(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.5), 0 4px 6px -4px oklch(0 0 0 / 0.5);
-  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.6), 0 8px 10px -6px oklch(0 0 0 / 0.6);
-  --shadow-glow: 0 0 30px oklch(0.65 0.25 285 / 0.4);
-  --shadow-glow-sm: 0 0 15px oklch(0.65 0.25 285 / 0.3);
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.5), 0 1px 2px -1px oklch(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.5), 0 2px 4px -2px oklch(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.6), 0 4px 6px -4px oklch(0 0 0 / 0.6);
+  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.7), 0 8px 10px -6px oklch(0 0 0 / 0.7);
+  --shadow-2xl: 0 30px 40px -10px oklch(0 0 0 / 0.8);
+  --shadow-glow: 0 0 35px oklch(0.68 0.28 320 / 0.45);
+  --shadow-glow-sm: 0 0 18px oklch(0.68 0.28 320 / 0.35);
+  --shadow-glow-lg: 0 0 50px oklch(0.68 0.28 320 / 0.55);
+  --shadow-caesar: 0 0 40px oklch(0.58 0.13 65 / 0.4);
   
-  --gradient-primary: linear-gradient(135deg, oklch(0.65 0.25 285), oklch(0.75 0.3 285));
-  --gradient-subtle: linear-gradient(180deg, oklch(0.2 0.02 285), oklch(0.18 0.02 285));
-  --gradient-card: linear-gradient(135deg, oklch(0.2 0.02 285), oklch(0.22 0.03 285));
-  --gradient-success: linear-gradient(135deg, oklch(0.7 0.2 150), oklch(0.75 0.22 150));
-  --gradient-warning: linear-gradient(135deg, oklch(0.8 0.18 75), oklch(0.85 0.2 75));
-  --gradient-destructive: linear-gradient(135deg, oklch(0.65 0.28 25), oklch(0.7 0.3 25));
+  --gradient-primary: linear-gradient(135deg, oklch(0.68 0.28 320), oklch(0.78 0.32 320));
+  --gradient-vici: linear-gradient(135deg, 
+    oklch(0.68 0.28 320),
+    oklch(0.75 0.30 320),
+    oklch(0.72 0.30 25)
+  );
+  --gradient-vici-subtle: linear-gradient(135deg, 
+    oklch(0.35 0.15 320),
+    oklch(0.40 0.12 320)
+  );
+  --gradient-caesar: linear-gradient(135deg, oklch(0.58 0.13 65), oklch(0.72 0.19 75));
+  --gradient-subtle: linear-gradient(180deg, oklch(0.18 0.02 320), oklch(0.16 0.02 320));
+  --gradient-card: linear-gradient(135deg, oklch(0.18 0.02 320), oklch(0.20 0.03 320));
+  --gradient-card-hover: linear-gradient(135deg, oklch(0.20 0.03 320), oklch(0.22 0.04 320));
+  --gradient-success: linear-gradient(135deg, oklch(0.72 0.22 150), oklch(0.76 0.24 150));
+  --gradient-warning: linear-gradient(135deg, oklch(0.82 0.18 75), oklch(0.86 0.20 75));
+  --gradient-destructive: linear-gradient(135deg, oklch(0.68 0.30 25), oklch(0.72 0.32 25));
+  --gradient-hero: linear-gradient(135deg, 
+    oklch(0.20 0.03 320),
+    oklch(0.16 0.02 320),
+    oklch(0.18 0.02 25)
+  );
 }
 
 @layer base {

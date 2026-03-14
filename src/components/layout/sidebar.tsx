@@ -73,9 +73,21 @@ export function Sidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-2 px-6 py-4 border-b">
-            <Building2 className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-lg bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent">ViciVidi AI</span>
+          <div className="flex items-center gap-3 px-6 py-4 border-b">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] rounded-lg blur opacity-75 group-hover:opacity-100 transition-opacity" />
+              <div className="relative w-8 h-8 bg-gradient-to-br from-primary to-[oklch(0.65_0.28_25)] rounded-lg flex items-center justify-center shadow-lg">
+                <svg viewBox="0 0 32 32" className="w-6 h-6 text-white" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 6L8 26M8 6L16 14M8 6L16 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
+                  <path d="M24 6L24 26M24 6L16 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
+                  <path d="M16 14L16 26" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+                </svg>
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-lg bg-gradient-to-r from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent leading-tight">ViciVidi</span>
+              <span className="text-[10px] text-muted-foreground font-medium tracking-wide">AI</span>
+            </div>
           </div>
 
           {/* Navigation */}
