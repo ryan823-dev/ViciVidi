@@ -1,0 +1,588 @@
+// ForgeLead AI - Database Schema
+// 技术栈: Prisma + Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ========== 用户与认证 ==========
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workspaces       WorkspaceMember[]
+  quota            UserQuota?
+  userSubscription UserSubscription?
+
+  @@index([email])
+  @@map("users")
+}
+
+// ========== 工作空间 ==========
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(STARTER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   WorkspaceMember[]
+  companies WorkspaceCompany[]
+  lists     List[]
+  leads     Lead[]
+
+  @@index([slug])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String     @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        MemberRole @default(MEMBER)
+  joinedAt    DateTime   @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+enum Plan {
+  STARTER
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ========== 配额管理 ==========
+
+model UserQuota {
+  id     String @id @default(cuid())
+  userId String @unique
+  plan   Plan   @default(STARTER)
+
+  // 使用量
+  usedCompanies          Int @default(0)
+  usedEmailVerifications Int @default(0)
+  usedExports            Int @default(0)
+
+  // 增值购买
+  extraEmailVerifications Int @default(0)
+
+  // 周期
+  periodStart DateTime @default(now())
+  periodEnd   DateTime
+
+  updatedAt DateTime @updatedAt
+
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription       UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
+  userSubscriptionId String?
+
+  @@map("user_quotas")
+}
+
+// ========== 订阅管理 ==========
+
+model UserSubscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String    @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  plan                 Plan      @default(STARTER)
+  status               String    @default("active") // active, trialing, past_due, canceled, paused
+  interval             String? // month, year
+  currentPeriodStart   DateTime? @map("current_period_start")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  cancelAtPeriodEnd    Boolean   @default(false) @map("cancel_at_period_end")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userQuotas UserQuota[]
+
+  @@index([stripeCustomerId])
+  @@index([status])
+  @@map("user_subscriptions")
+}
+
+// ========== 共享公司库 ==========
+
+model SharedCompany {
+  id          String  @id @default(cuid())
+  domain      String  @unique
+  name        String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  country     String?
+  postalCode  String? @map("postal_code")
+  employees   Int?
+  revenue     BigInt?
+  industry    String?
+  linkedinUrl String? @map("linkedin_url")
+  website     String?
+  description String?
+
+  // 数据来源追踪 (JSON数组)
+  sources Json @default("[]")
+
+  // 元数据
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastVerifiedAt DateTime? @map("last_verified_at")
+
+  workspaceCompanies WorkspaceCompany[]
+  emailVerifications EmailVerification[]
+
+  @@index([domain])
+  @@index([industry])
+  @@map("shared_companies")
+}
+
+model WorkspaceCompany {
+  id          String @id @default(cuid())
+  workspaceId String
+  companyId   String
+
+  // 私有数据
+  customFields Json     @default("{}") @map("custom_fields")
+  tags         String[]
+  notes        String?
+  stage        String?
+  assignedTo   String?  @map("assigned_to")
+
+  // 时间戳
+  addedAt        DateTime  @default(now()) @map("added_at")
+  lastActivityAt DateTime? @map("last_activity_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company   SharedCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, companyId])
+  @@index([workspaceId])
+  @@map("workspace_companies")
+}
+
+model EmailVerification {
+  id         String   @id @default(cuid())
+  companyId  String
+  email      String
+  source     String // 'hunter', 'brave', 'firecrawl', 'manual'
+  confidence Float
+  verifiedAt DateTime @default(now()) @map("verified_at")
+  verifiedBy String?  @map("verified_by")
+  cost       Float    @default(0)
+
+  company SharedCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead    Lead?         @relation(fields: [leadId], references: [id])
+  leadId  String?
+
+  @@unique([companyId, email])
+  @@map("email_verifications")
+}
+
+// ========== 列表管理 ==========
+
+model List {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items     ListItem[]
+
+  @@index([workspaceId])
+  @@map("lists")
+}
+
+model ListItem {
+  id        String   @id @default(cuid())
+  listId    String
+  companyId String
+  addedAt   DateTime @default(now())
+
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, companyId])
+  @@map("list_items")
+}
+
+// ========== 智能调研模板 ==========
+
+model ResearchTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  name        String
+  description String?
+  prompt      String
+  outputType  String   @map("output_type") // 'text', 'list', 'json'
+  isPublic    Boolean  @default(false) @map("is_public")
+  usageCount  Int      @default(0) @map("usage_count")
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([isPublic])
+  @@map("research_templates")
+}
+
+// ========== API调用日志（成本追踪） ==========
+
+model ApiCallLog {
+  id        String   @id @default(cuid())
+  service   String // 'google_places', 'brave_search', 'hunter', 'firecrawl'
+  operation String
+  cost      Float    @default(0)
+  success   Boolean  @default(true)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([service])
+  @@index([createdAt])
+  @@map("api_call_logs")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  key        String
+  keyPrefix  String    @map("key_prefix")
+  revoked    Boolean   @default(false)
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([keyPrefix])
+  @@map("api_keys")
+}
+
+// ========== 成本追踪 ==========
+
+model Cost {
+  id           String   @id @default(cuid())
+  workspaceId  String   @map("workspace_id")
+  userId       String   @map("user_id")
+  service      String // 'Google Places', 'Brave Search', 'Hunter.io', 'Firecrawl'
+  apiCall      String   @map("api_call") // 具体 API 调用
+  creditsUsed  Int      @default(0) @map("credits_used")
+  usdCost      Float    @default(0) @map("usd_cost")
+  requestCount Int      @default(1) @map("request_count")
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([service])
+  @@index([createdAt])
+  @@map("costs")
+}
+
+model CostBudget {
+  id             String   @id @default(cuid())
+  workspaceId    String   @unique @map("workspace_id")
+  monthlyLimit   Float    @default(1000) @map("monthly_limit")
+  alertThreshold Int      @default(80) @map("alert_threshold") // 百分比
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@map("cost_budgets")
+}
+
+// ========== 定时任务 ==========
+
+model Schedule {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  userId        String    @map("user_id")
+  name          String
+  type          String // 'DATA_REFRESH', 'EMAIL_VERIFICATION', 'DUPLICATE_CHECK'
+  cron          String
+  config        Json?
+  enabled       Boolean   @default(true)
+  lastRunAt     DateTime? @map("last_run_at")
+  nextRunAt     DateTime? @map("next_run_at")
+  lastRunStatus String?   @map("last_run_status") // 'success', 'failed'
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([enabled])
+  @@map("schedules")
+}
+
+// ========== 通知系统 ==========
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  type        String // 'BUDGET_ALERT', 'TASK_COMPLETED', 'DUPLICATE_DETECTED', 'QUOTA_WARNING', 'TEAM_INVITE'
+  title       String
+  message     String
+  data        Json?
+  workspaceId String?  @map("workspace_id")
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ========== API 密钥配置 ==========
+
+model ApiKeyConfig {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+
+  // 服务名称
+  service String @unique // 'google_places', 'brave_search', 'apollo', 'skrapp', 'hunter', 'firecrawl', 'companies_house', 'qcc', 'tyc'
+
+  // 密钥（加密存储）
+  apiKey    String? @map("api_key")
+  apiSecret String? @map("api_secret") // 部分服务需要两个密钥
+
+  // 状态
+  isEnabled  Boolean   @default(true) @map("is_enabled")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  // 元数据
+  notes     String? // 备注信息
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([service])
+  @@map("api_key_configs")
+}
+
+// ========== 获客线索（融合 Vertax 雷达核心功能） ==========
+
+// 线索状态机 - 直接来自 Vertax Radar
+enum LeadStatus {
+  NEW // 新发现 - 待审核
+  REVIEWING // 审核中 - 人工确认
+  QUALIFIED // 已合格化 - AI 评分通过
+  IMPORTED // 已导入线索库 - 正式 Lead
+  EXCLUDED // 已排除 - 不匹配
+  ENRICHING // 等待详情补全 - API 丰富中
+  CONTACTED // 已联系
+  CONVERTED // 已转化
+}
+
+// 质量分层
+enum LeadTier {
+  A // 高质量 - 优先联系
+  B // 中质量 - 常规跟进
+  C // 低质量 - 暂不处理
+  EXCLUDED // 已排除
+}
+
+model Lead {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+
+  // ========== 基本信息 ==========
+  companyName String  @map("company_name")
+  domain      String? // 公司域名
+  contactName String? @map("contact_name")
+  email       String?
+  phone       String?
+  website     String?
+  country     String?
+  city        String?
+  address     String?
+  industry    String?
+  companySize String? @map("company_size")
+  description String?
+
+  // ========== 状态机（Vertax 核心） ==========
+  status LeadStatus @default(NEW)
+  tier   LeadTier?
+
+  // ========== 来源追溯（Vertax 核心） ==========
+  sourceId   String? @map("source_id") // 哪个数据源 (Apollo/Skrapp/Hunter)
+  sourceUrl  String? @map("source_url") // 原始链接
+  externalId String? @map("external_id") // 外部 ID (Apollo company_id 等)
+  taskId     String? @map("task_id") // 哪个扫描任务发现
+
+  // ========== ICP 匹配评分（Vertax 核心） ==========
+  matchScore    Float?  @map("match_score") // 0-100 匹配分
+  matchExplain  Json?   @map("match_explain") // { rules: [...], reasons: [...] }
+  qualifyReason String? @map("qualify_reason")
+
+  // 合格化时间戳
+  qualifiedAt DateTime? @map("qualified_at")
+  qualifiedBy String?   @map("qualified_by") // AI 或 用户 ID
+
+  // ========== 丰富化状态 ==========
+  enriching  Boolean   @default(false)
+  enrichedAt DateTime? @map("enriched_at")
+
+  // ========== 研究数据（现有字段） ==========
+  researchData Json? @map("research_data")
+
+  // ========== 跟进管理 ==========
+  priority        String    @default("medium") // high, medium, low
+  assignedTo      String?   @map("assigned_to")
+  notes           String?
+  tags            String[]
+  lastContactedAt DateTime? @map("last_contacted_at")
+  nextActionDate  DateTime? @map("next_action_date")
+  nextAction      String?
+
+  // ========== 转化追踪 ==========
+  importedAt  DateTime? @map("imported_at")
+  convertedAt DateTime? @map("converted_at")
+  lostReason  String?   @map("lost_reason")
+
+  // ========== 元数据 ==========
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? @map("deleted_at")
+
+  // ========== 关联 ==========
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  emailVerifications EmailVerification[]
+  intentSignals      IntentSignal[]
+
+  // ========== 索引 ==========
+  @@index([workspaceId])
+  @@index([status])
+  @@index([tier])
+  @@index([sourceId])
+  @@index([matchScore])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+// ========== Webhook 集成 ==========
+
+model WebhookConfig {
+  id          String @id @default(cuid())
+  userId      String @map("user_id")
+  workspaceId String @map("workspace_id")
+
+  // Webhook 配置
+  url             String
+  method          String  @default("POST") // POST, PUT, PATCH
+  headers         Json? // 自定义请求头
+  authType        String  @default("none") @map("auth_type") // none, basic, bearer
+  username        String?
+  password        String? // 加密存储
+  bearerToken     String? @map("bearer_token") // 加密存储
+  payloadTemplate String? @map("payload_template") // JSON 模板
+
+  // 执行配置
+  isActive   Boolean @default(true) @map("is_active")
+  retryCount Int     @default(3) @map("retry_count")
+  timeout    Int     @default(5000) // 毫秒
+
+  // 元数据
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  webhookLogs WebhookLog[]
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([isActive])
+  @@map("webhook_configs")
+}
+
+model WebhookLog {
+  id          String @id @default(cuid())
+  userId      String @map("user_id")
+  workspaceId String @map("workspace_id")
+  webhookId   String @map("webhook_id")
+
+  // 执行结果
+  success       Boolean
+  statusCode    Int?    @map("status_code")
+  response      String? // JSON 响应
+  error         String?
+  executionTime Int     @map("execution_time") // 毫秒
+
+  // 时间戳
+  createdAt DateTime @default(now())
+
+  // 关联
+  webhookConfig WebhookConfig @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([webhookId])
+  @@index([success])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// ========== 意图数据追踪 ==========
+
+model IntentSignal {
+  id          String  @id @default(cuid())
+  workspaceId String  @map("workspace_id")
+  companyId   String? @map("company_id")
+  leadId      String? @map("lead_id")
+
+  // 意图信号类型
+  signalType String // 'page_view', 'pricing_view', 'demo_request', 'feature_usage', 'email_open', 'email_click', 'ip_visit'
+
+  // 信号强度
+  intensity Float @default(1.0) // 0.0 - 1.0
+  score     Int   @default(0) // 计算后的意图分数
+
+  // 信号详情
+  metadata  Json? // { ip, userAgent, page, duration, etc. }
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+  page      String? // 访问的页面
+  referrer  String? // 来源页面
+
+  // 时间戳
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  // 关联
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([companyId])
+  @@index([leadId])
+  @@index([signalType])
+  @@index([occurredAt])
+  @@map("intent_signals")
+}
