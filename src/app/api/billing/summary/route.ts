@@ -8,12 +8,12 @@ import { auth } from '@/lib/auth'
  */
 export async function GET(req: NextRequest) {
   try {
-    const user = await auth(req)
-    if (!user) {
+    const session = await auth()
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const summary = await getBillingSummary(user.id)
+    const summary = await getBillingSummary(session.user.id)
 
     if (!summary) {
       return NextResponse.json({

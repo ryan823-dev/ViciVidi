@@ -9,8 +9,8 @@ import { auth } from '@/lib/auth'
 export async function POST(req: NextRequest) {
   try {
     // 1. 验证用户登录
-    const user = await auth(req)
-    if (!user) {
+    const session = await auth()
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     // 4. 创建结账会话
     const { checkoutUrl, sessionId } = await createBillingCheckout({
-      userId: user.id,
+      userId: session.user.id,
       planId,
       successUrl: `${baseUrl}/payment/success?session_id=${sessionId}`,
       cancelUrl: `${baseUrl}/payment/cancelled`,

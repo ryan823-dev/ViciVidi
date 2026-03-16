@@ -8,8 +8,8 @@ import { auth } from '@/lib/auth'
  */
 export async function GET(req: NextRequest) {
   try {
-    const user = await auth(req)
-    if (!user) {
+    const session = await auth()
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     const ledger = await getCreditLedger({
-      userId: user.id,
+      userId: session.user.id,
       limit,
       offset,
     })
