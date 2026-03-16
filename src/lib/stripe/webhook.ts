@@ -206,6 +206,7 @@ async function handleSubscriptionDeleted(
  */
 async function handleInvoicePaid(event: Stripe.Event, tx: any) {
   const invoice = event.data.object as Stripe.Invoice
+  const inv = invoice as any
   console.log(`💰 发票支付成功：${invoice.id}`)
 
   const customer = await tx.billingCustomer.findFirst({
@@ -221,8 +222,8 @@ async function handleInvoicePaid(event: Stripe.Event, tx: any) {
       stripeEventId: event.id,
       stripeInvoiceId: invoice.id,
       eventType: event.type,
-      amountCents: invoice.amount_paid,
-      currency: invoice.currency,
+      amountCents: invoice.amount_paid || 0,
+      currency: invoice.currency || 'usd',
       status: 'processed',
       metadata: event.data.object as any,
     },
@@ -234,12 +235,12 @@ async function handleInvoicePaid(event: Stripe.Event, tx: any) {
     create: {
       billingCustomerId: customer.id,
       stripeInvoiceId: invoice.id,
-      stripeSubscriptionId: invoice.subscription as string | null,
-      amountCents: invoice.amount_paid,
-      currency: invoice.currency,
+      stripeSubscriptionId: inv.subscription as string | null,
+      amountCents: invoice.amount_paid || 0,
+      currency: invoice.currency || 'usd',
       status: 'paid',
       paidAt: new Date(),
-      invoiceUrl: invoice.hosted_invoice_url,
+      invoiceUrl: invoice.hosted_invoice_url || null,
     },
     update: {
       status: 'paid',
@@ -253,6 +254,7 @@ async function handleInvoicePaid(event: Stripe.Event, tx: any) {
  */
 async function handleInvoicePaymentFailed(event: Stripe.Event, tx: any) {
   const invoice = event.data.object as Stripe.Invoice
+  const inv = invoice as any
   console.log(`💸 发票支付失败：${invoice.id}`)
 
   const customer = await tx.billingCustomer.findFirst({
@@ -262,9 +264,9 @@ async function handleInvoicePaymentFailed(event: Stripe.Event, tx: any) {
   if (!customer) return
 
   // 更新订阅状态为 PAST_DUE
-  if (invoice.subscription) {
+  if (inv.subscription) {
     await tx.subscription.updateMany({
-      where: { stripeSubscriptionId: invoice.subscription as string },
+      where: { stripeSubscriptionId: inv.subscription as string },
       data: { status: 'PAST_DUE' },
     })
   }
@@ -276,8 +278,8 @@ async function handleInvoicePaymentFailed(event: Stripe.Event, tx: any) {
       stripeEventId: event.id,
       stripeInvoiceId: invoice.id,
       eventType: event.type,
-      amountCents: invoice.amount_due,
-      currency: invoice.currency,
+      amountCents: invoice.amount_due || 0,
+      currency: invoice.currency || 'usd',
       status: 'failed',
       metadata: event.data.object as any,
     },
