@@ -1,0 +1,255 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "search": "搜索",
+    "filter": "筛选",
+    "export": "导出",
+    "import": "导入",
+    "submit": "提交",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "confirm": "确认",
+    "close": "关闭",
+    "yes": "是",
+    "no": "否",
+    "all": "全部",
+    "none": "无",
+    "select": "选择",
+    "selectAll": "全选",
+    "clear": "清空",
+    "reset": "重置",
+    "refresh": "刷新",
+    "copy": "复制",
+    "download": "下载",
+    "upload": "上传",
+    "view": "查看",
+    "details": "详情",
+    "status": "状态",
+    "actions": "操作",
+    "noData": "暂无数据",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "提示"
+  },
+  "auth": {
+    "login": {
+      "title": "ViciVidi AI",
+      "subtitle": "智能线索挖掘与销售加速平台",
+      "googleLogin": "使用 Google 登录",
+      "orEmail": "或使用邮箱登录",
+      "email": "邮箱地址",
+      "password": "密码",
+      "emailPlaceholder": "name@company.com",
+      "signIn": "登录",
+      "signingIn": "登录中...",
+      "noAccount": "还没有账户？",
+      "register": "立即注册",
+      "invalidCredentials": "邮箱或密码错误"
+    },
+    "register": {
+      "title": "创建账户",
+      "subtitle": "加入 ViciVidi AI 开启智能获客之旅",
+      "googleSignUp": "使用 Google 注册",
+      "orEmail": "或使用邮箱注册",
+      "name": "姓名",
+      "email": "邮箱地址",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "createAccount": "创建账户",
+      "creating": "创建中...",
+      "hasAccount": "已有账户？",
+      "login": "登录",
+      "passwordMismatch": "两次密码不一致"
+    }
+  },
+  "dashboard": {
+    "title": "仪表盘",
+    "welcome": "欢迎使用 ViciVidi AI",
+    "overview": "概览",
+    "stats": {
+      "totalCompanies": "公司总数",
+      "emailVerifications": "邮箱验证",
+      "listsCount": "列表数量",
+      "enrichmentRate": "数据丰富率",
+      "newThisMonth": "本月新增",
+      "remaining": "剩余",
+      "totalLeads": "条线索",
+      "target": "目标"
+    },
+    "quickStart": {
+      "title": "快速开始",
+      "description": "开始添加公司，自动丰富数据",
+      "addFirst": "添加第一个公司 →"
+    },
+    "quotaUsage": {
+      "title": "配额使用",
+      "currentPlan": "当前套餐",
+      "companyCount": "公司数量"
+    }
+  },
+  "billing": {
+    "title": "订阅与计费",
+    "subtitle": "管理您的订阅、积分和使用情况",
+    "manageSubscription": "管理订阅",
+    "loading": "加载计费信息...",
+    "noSubscription": {
+      "title": "开始您的订阅之旅",
+      "description": "选择合适的套餐，解锁强大的海外客户开发能力",
+      "viewPricing": "查看套餐价格"
+    },
+    "currentPlan": "当前套餐",
+    "remainingCredits": "剩余积分",
+    "periodUsage": "本期使用",
+    "perMonth": "/月",
+    "credits": "积分",
+    "used": "已使用",
+    "needMoreCredits": "需要更多积分？",
+    "buyCreditPacks": "购买积分包，享受更低单价",
+    "creditPacks": {
+      "small": {
+        "name": "Small",
+        "credits": "100 积分"
+      },
+      "medium": {
+        "name": "Medium",
+        "credits": "400 积分",
+        "popular": "最受欢迎",
+        "save": "省 38%"
+      },
+      "large": {
+        "name": "Large",
+        "credits": "1,500 积分",
+        "save": "省 67%"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "credits": "5,000 积分",
+        "save": "省 80%"
+      },
+      "buy": "购买"
+    },
+    "creditLedger": {
+      "title": "积分账本",
+      "description": "查看所有积分变动的详细记录",
+      "exportCsv": "导出 CSV",
+      "noRecords": "暂无积分变动记录",
+      "balance": "余额"
+    }
+  },
+  "companies": {
+    "title": "公司",
+    "subtitle": "管理和丰富公司数据",
+    "addCompany": "添加公司",
+    "searchPlaceholder": "搜索公司...",
+    "noCompanies": "暂无公司",
+    "addFirst": "添加第一个公司开始使用"
+  },
+  "leads": {
+    "title": "线索",
+    "subtitle": "发现和管理潜在客户",
+    "discoverLeads": "发现线索",
+    "searchPlaceholder": "搜索线索...",
+    "noLeads": "暂无线索"
+  },
+  "schedules": {
+    "title": "计划任务",
+    "subtitle": "自动化您的工作流程",
+    "createSchedule": "创建计划",
+    "noSchedules": "暂无计划任务"
+  },
+  "analytics": {
+    "title": "数据分析",
+    "subtitle": "追踪您的绩效指标"
+  },
+  "costs": {
+    "title": "成本",
+    "subtitle": "监控您的支出"
+  },
+  "settings": {
+    "title": "设置",
+    "apiKeys": {
+      "title": "API 密钥",
+      "subtitle": "管理您的 API 访问密钥"
+    },
+    "integrations": {
+      "title": "CRM 集成",
+      "subtitle": "连接您的 CRM 系统"
+    },
+    "quota": {
+      "title": "配额设置",
+      "subtitle": "配置使用限制"
+    }
+  },
+  "team": {
+    "title": "团队",
+    "subtitle": "管理团队成员和权限",
+    "inviteMember": "邀请成员",
+    "noMembers": "暂无团队成员"
+  },
+  "notifications": {
+    "title": "通知",
+    "subtitle": "及时获取提醒",
+    "noNotifications": "暂无通知"
+  },
+  "duplicates": {
+    "title": "重复记录",
+    "subtitle": "查找并合并重复记录"
+  },
+  "addons": {
+    "title": "增值服务",
+    "subtitle": "扩展您的功能"
+  },
+  "apiAccess": {
+    "title": "API 访问",
+    "subtitle": "通过 API 集成"
+  },
+  "payment": {
+    "success": {
+      "title": "支付成功！",
+      "description": "感谢您的购买，您的订阅已激活。",
+      "backToDashboard": "返回仪表盘"
+    },
+    "cancelled": {
+      "title": "支付已取消",
+      "description": "您的支付已取消，随时可以重试。",
+      "backToBilling": "返回计费"
+    }
+  },
+  "subscription": {
+    "title": "订阅管理",
+    "currentPlan": "当前套餐",
+    "changePlan": "更换套餐",
+    "cancelSubscription": "取消订阅",
+    "resumeSubscription": "恢复订阅"
+  },
+  "nav": {
+    "dashboard": "仪表盘",
+    "companies": "公司",
+    "leads": "线索",
+    "lists": "列表",
+    "schedules": "计划任务",
+    "analytics": "数据分析",
+    "costs": "成本",
+    "duplicates": "重复记录",
+    "notifications": "通知",
+    "addons": "增值服务",
+    "apiAccess": "API 访问",
+    "apiKeys": "API密钥",
+    "billing": "计费",
+    "team": "团队",
+    "settings": "设置",
+    "quota": "配额",
+    "logout": "退出登录"
+  },
+  "footer": {
+    "poweredBy": "Powered by",
+    "caesarEngine": "Caesar Engine"
+  }
+}

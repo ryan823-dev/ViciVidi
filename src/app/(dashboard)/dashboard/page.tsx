@@ -1,40 +1,48 @@
+'use client'
+
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Building2, Mail, List, TrendingUp } from 'lucide-react'
 
-const stats = [
-  {
-    title: '公司总数',
-    value: '0',
-    description: '本月新增 0',
-    icon: Building2,
-  },
-  {
-    title: '邮箱验证',
-    value: '0',
-    description: '剩余 50 次',
-    icon: Mail,
-  },
-  {
-    title: '列表数量',
-    value: '0',
-    description: '共 0 条线索',
-    icon: List,
-  },
-  {
-    title: '数据丰富率',
-    value: '0%',
-    description: '目标 80%',
-    icon: TrendingUp,
-  },
-]
-
 export default function DashboardPage() {
+  const t = useTranslations('dashboard')
+  const tStats = useTranslations('dashboard.stats')
+  const tQuickStart = useTranslations('dashboard.quickStart')
+  const tQuota = useTranslations('dashboard.quotaUsage')
+
+  const stats = [
+    {
+      title: tStats('totalCompanies'),
+      value: '0',
+      description: tStats('newThisMonth').replace('{count}', '0'),
+      icon: Building2,
+    },
+    {
+      title: tStats('emailVerifications'),
+      value: '0',
+      description: tStats('remaining').replace('{count}', '50'),
+      icon: Mail,
+    },
+    {
+      title: tStats('listsCount'),
+      value: '0',
+      description: tStats('totalLeads').replace('{count}', '0'),
+      icon: List,
+    },
+    {
+      title: tStats('enrichmentRate'),
+      value: '0%',
+      description: tStats('target').replace('{value}', '80%'),
+      icon: TrendingUp,
+    },
+  ]
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">概览</h1>
+        <h1 className="text-3xl font-bold">{t('overview')}</h1>
         <p className="text-muted-foreground mt-1">
-          欢迎使用 ViciVidi AI
+          {t('welcome')}
         </p>
       </div>
 
@@ -65,9 +73,9 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>快速开始</CardTitle>
+            <CardTitle>{tQuickStart('title')}</CardTitle>
             <CardDescription>
-              开始添加公司，自动丰富数据
+              {tQuickStart('description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -75,22 +83,22 @@ export default function DashboardPage() {
               href="/companies"
               className="text-primary hover:underline"
             >
-              添加第一个公司 →
+              {tQuickStart('addFirst')}
             </a>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>配额使用</CardTitle>
+            <CardTitle>{tQuota('title')}</CardTitle>
             <CardDescription>
-              当前套餐: Starter
+              {tQuota('currentPlan')}: Starter
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>公司数量</span>
+                <span>{tQuota('companyCount')}</span>
                 <span>0 / 1,000</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">

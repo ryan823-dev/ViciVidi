@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import {
   Building2,
@@ -32,27 +33,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-const navItems = [
-  { href: '/dashboard', label: '概览', icon: LayoutDashboard },
-  { href: '/companies', label: '公司', icon: Building2 },
-  { href: '/lists', label: '列表', icon: List },
-  { href: '/addons', label: '商店', icon: Zap },
-  { href: '/team', label: '团队', icon: Users },
-  { href: '/schedules', label: '定时', icon: Clock },
-  { href: '/duplicates', label: '去重', icon: Copy },
-  { href: '/notifications', label: '通知', icon: Bell },
-  { href: '/analytics', label: '分析', icon: BarChart3 },
-  { href: '/settings/quota', label: '配额', icon: TrendingUp },
-  { href: '/costs', label: '成本', icon: DollarSign },
-  { href: '/subscription/manage', label: '订阅', icon: CreditCard },
-  { href: '/settings/api-keys', label: 'API密钥', icon: Key },
-  { href: '/settings', label: '设置', icon: Settings },
-]
+import { LanguageSwitcher } from '@/components/language-switcher'
 
 export function Sidebar() {
+  const t = useTranslations('nav')
+  const tFooter = useTranslations('footer')
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/companies', label: t('companies'), icon: Building2 },
+    { href: '/lists', label: t('lists'), icon: List },
+    { href: '/addons', label: t('addons'), icon: Zap },
+    { href: '/team', label: t('team'), icon: Users },
+    { href: '/schedules', label: t('schedules'), icon: Clock },
+    { href: '/duplicates', label: t('duplicates'), icon: Copy },
+    { href: '/notifications', label: t('notifications'), icon: Bell },
+    { href: '/analytics', label: t('analytics'), icon: BarChart3 },
+    { href: '/settings/quota', label: t('quota'), icon: TrendingUp },
+    { href: '/costs', label: t('costs'), icon: DollarSign },
+    { href: '/subscription/manage', label: t('billing'), icon: CreditCard },
+    { href: '/settings/api-keys', label: t('apiKeys'), icon: Key },
+    { href: '/settings', label: t('settings'), icon: Settings },
+  ]
 
   return (
     <>
@@ -116,6 +120,11 @@ export function Sidebar() {
             })}
           </nav>
 
+          {/* Language Switcher */}
+          <div className="px-3 py-2 border-t">
+            <LanguageSwitcher />
+          </div>
+
           {/* User menu */}
           <div className="px-3 py-4 border-t">
             <DropdownMenu>
@@ -124,19 +133,19 @@ export function Sidebar() {
                   <AvatarImage src="" />
                   <AvatarFallback>U</AvatarFallback>
                 </Avatar>
-                <span className="truncate">用户</span>
+                <span className="truncate">User</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem>
                   <Link href="/settings" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
-                    设置
+                    {t('settings')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
-                  退出登录
+                  {t('logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -145,9 +154,9 @@ export function Sidebar() {
           {/* Powered by Caesar Engine */}
           <div className="px-6 py-3 border-t bg-muted/30">
             <p className="text-xs text-muted-foreground text-center">
-              Powered by{' '}
+              {tFooter('poweredBy')}{' '}
               <span className="font-medium bg-gradient-to-r from-[oklch(0.55_0.12_65)] to-[oklch(0.7_0.18_75)] bg-clip-text text-transparent">
-                Caesar Engine
+                {tFooter('caesarEngine')}
               </span>
             </p>
           </div>

@@ -1,0 +1,255 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "none": "None",
+    "select": "Select",
+    "selectAll": "Select All",
+    "clear": "Clear",
+    "reset": "Reset",
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "download": "Download",
+    "upload": "Upload",
+    "view": "View",
+    "details": "Details",
+    "status": "Status",
+    "actions": "Actions",
+    "noData": "No data available",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "auth": {
+    "login": {
+      "title": "ViciVidi AI",
+      "subtitle": "Intelligent Lead Mining & Sales Acceleration Platform",
+      "googleLogin": "Sign in with Google",
+      "orEmail": "or sign in with email",
+      "email": "Email Address",
+      "password": "Password",
+      "emailPlaceholder": "name@company.com",
+      "signIn": "Sign In",
+      "signingIn": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "register": "Sign Up",
+      "invalidCredentials": "Invalid email or password"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join ViciVidi AI for intelligent lead generation",
+      "googleSignUp": "Sign up with Google",
+      "orEmail": "or sign up with email",
+      "name": "Full Name",
+      "email": "Email Address",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "createAccount": "Create Account",
+      "creating": "Creating account...",
+      "hasAccount": "Already have an account?",
+      "login": "Sign In",
+      "passwordMismatch": "Passwords do not match"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to ViciVidi AI",
+    "overview": "Overview",
+    "stats": {
+      "totalCompanies": "Total Companies",
+      "emailVerifications": "Email Verifications",
+      "listsCount": "Lists Count",
+      "enrichmentRate": "Enrichment Rate",
+      "newThisMonth": "New this month",
+      "remaining": "remaining",
+      "totalLeads": "total leads",
+      "target": "Target"
+    },
+    "quickStart": {
+      "title": "Quick Start",
+      "description": "Start adding companies and auto-enrich data",
+      "addFirst": "Add your first company →"
+    },
+    "quotaUsage": {
+      "title": "Quota Usage",
+      "currentPlan": "Current Plan",
+      "companyCount": "Company Count"
+    }
+  },
+  "billing": {
+    "title": "Subscription & Billing",
+    "subtitle": "Manage your subscription, credits and usage",
+    "manageSubscription": "Manage Subscription",
+    "loading": "Loading billing information...",
+    "noSubscription": {
+      "title": "Start Your Subscription",
+      "description": "Choose a plan to unlock powerful overseas customer development capabilities",
+      "viewPricing": "View Pricing Plans"
+    },
+    "currentPlan": "Current Plan",
+    "remainingCredits": "Remaining Credits",
+    "periodUsage": "Period Usage",
+    "perMonth": "/month",
+    "credits": "credits",
+    "used": "used",
+    "needMoreCredits": "Need More Credits?",
+    "buyCreditPacks": "Buy credit packs at lower rates",
+    "creditPacks": {
+      "small": {
+        "name": "Small",
+        "credits": "100 credits"
+      },
+      "medium": {
+        "name": "Medium",
+        "credits": "400 credits",
+        "popular": "Most Popular",
+        "save": "Save 38%"
+      },
+      "large": {
+        "name": "Large",
+        "credits": "1,500 credits",
+        "save": "Save 67%"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "credits": "5,000 credits",
+        "save": "Save 80%"
+      },
+      "buy": "Buy"
+    },
+    "creditLedger": {
+      "title": "Credit Ledger",
+      "description": "View detailed records of all credit changes",
+      "exportCsv": "Export CSV",
+      "noRecords": "No credit records yet",
+      "balance": "Balance"
+    }
+  },
+  "companies": {
+    "title": "Companies",
+    "subtitle": "Manage and enrich company data",
+    "addCompany": "Add Company",
+    "searchPlaceholder": "Search companies...",
+    "noCompanies": "No companies yet",
+    "addFirst": "Add your first company to get started"
+  },
+  "leads": {
+    "title": "Leads",
+    "subtitle": "Discover and manage potential customers",
+    "discoverLeads": "Discover Leads",
+    "searchPlaceholder": "Search leads...",
+    "noLeads": "No leads yet"
+  },
+  "schedules": {
+    "title": "Schedules",
+    "subtitle": "Automate your workflows",
+    "createSchedule": "Create Schedule",
+    "noSchedules": "No schedules configured"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Track your performance metrics"
+  },
+  "costs": {
+    "title": "Costs",
+    "subtitle": "Monitor your spending"
+  },
+  "settings": {
+    "title": "Settings",
+    "apiKeys": {
+      "title": "API Keys",
+      "subtitle": "Manage your API access keys"
+    },
+    "integrations": {
+      "title": "CRM Integrations",
+      "subtitle": "Connect your CRM systems"
+    },
+    "quota": {
+      "title": "Quota Settings",
+      "subtitle": "Configure usage limits"
+    }
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Manage team members and permissions",
+    "inviteMember": "Invite Member",
+    "noMembers": "No team members yet"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Stay updated with alerts",
+    "noNotifications": "No notifications"
+  },
+  "duplicates": {
+    "title": "Duplicates",
+    "subtitle": "Find and merge duplicate records"
+  },
+  "addons": {
+    "title": "Add-ons",
+    "subtitle": "Extend your capabilities"
+  },
+  "apiAccess": {
+    "title": "API Access",
+    "subtitle": "Integrate with our API"
+  },
+  "payment": {
+    "success": {
+      "title": "Payment Successful!",
+      "description": "Thank you for your purchase. Your subscription is now active.",
+      "backToDashboard": "Back to Dashboard"
+    },
+    "cancelled": {
+      "title": "Payment Cancelled",
+      "description": "Your payment was cancelled. You can try again anytime.",
+      "backToBilling": "Back to Billing"
+    }
+  },
+  "subscription": {
+    "title": "Subscription Management",
+    "currentPlan": "Current Plan",
+    "changePlan": "Change Plan",
+    "cancelSubscription": "Cancel Subscription",
+    "resumeSubscription": "Resume Subscription"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "companies": "Companies",
+    "leads": "Leads",
+    "lists": "Lists",
+    "schedules": "Schedules",
+    "analytics": "Analytics",
+    "costs": "Costs",
+    "duplicates": "Duplicates",
+    "notifications": "Notifications",
+    "addons": "Add-ons",
+    "apiAccess": "API Access",
+    "apiKeys": "API Keys",
+    "billing": "Billing",
+    "team": "Team",
+    "settings": "Settings",
+    "quota": "Quota",
+    "logout": "Sign Out"
+  },
+  "footer": {
+    "poweredBy": "Powered by",
+    "caesarEngine": "Caesar Engine"
+  }
+}

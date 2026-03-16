@@ -3,13 +3,17 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { LanguageSwitcher } from '@/components/language-switcher'
 
 export default function LoginPage() {
+  const t = useTranslations('auth.login')
+  const tFooter = useTranslations('footer')
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -44,7 +48,7 @@ export default function LoginPage() {
 
     if (error) {
       setError(error.message === 'Invalid login credentials'
-        ? '邮箱或密码错误'
+        ? t('invalidCredentials')
         : error.message)
     } else {
       router.push('/dashboard')
@@ -64,6 +68,11 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+
       {/* 背景装饰 */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
@@ -87,10 +96,10 @@ export default function LoginPage() {
         
         <CardHeader className="text-center pb-2">
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent">
-            ViciVidi AI
+            {t('title')}
           </CardTitle>
           <CardDescription className="text-base mt-2">
-            智能线索挖掘与销售加速平台
+            {t('subtitle')}
           </CardDescription>
         </CardHeader>
         
@@ -118,7 +127,7 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            使用 Google 登录
+            {t('googleLogin')}
           </Button>
 
           <div className="relative">
@@ -127,18 +136,18 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-3 text-muted-foreground">
-                或使用邮箱登录
+                {t('orEmail')}
               </span>
             </div>
           </div>
 
           <form onSubmit={handleEmailLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">邮箱地址</Label>
+              <Label htmlFor="email" className="text-sm font-medium">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@company.com"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -146,7 +155,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">密码</Label>
+              <Label htmlFor="password" className="text-sm font-medium">{t('password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -174,18 +183,18 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  登录中...
+                  {t('signingIn')}
                 </span>
-              ) : '登录'}
+              ) : t('signIn')}
             </Button>
           </form>
         </CardContent>
         
         <CardFooter className="flex justify-center pb-8">
           <p className="text-sm text-muted-foreground">
-            还没有账户？{' '}
+            {t('noAccount')}{' '}
             <Link href="/register" className="text-primary font-semibold hover:underline">
-              立即注册
+              {t('register')}
             </Link>
           </p>
         </CardFooter>
@@ -193,9 +202,9 @@ export default function LoginPage() {
         {/* Powered by Caesar Engine */}
         <div className="px-6 pb-6 flex justify-center">
           <p className="text-xs text-muted-foreground text-center">
-            Powered by{' '}
+            {tFooter('poweredBy')}{' '}
             <span className="font-medium bg-gradient-to-r from-[oklch(0.58_0.13_65)] to-[oklch(0.72_0.19_75)] bg-clip-text text-transparent">
-              Caesar Engine
+              {tFooter('caesarEngine')}
             </span>
           </p>
         </div>
