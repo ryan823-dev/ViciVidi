@@ -15,31 +15,18 @@ export async function handleWebhookEvent(event: Stripe.Event) {
   console.log(`🔔 处理 Webhook 事件：${eventId} (${eventType})`)
 
   try {
-    // 使用事务保证原子性和幂等性
+    // 1. 检查事件是否已处理（幂等性检查）
+    const existingEvent = await prisma.paymentEvent.findUnique({
+      where: { stripeEventId: eventId },
+    })
+
+    if (existingEvent) {
+      console.log(`⚠️  事件已处理，跳过：${eventId}`)
+      return
+    }
+
+    // 2. 根据事件类型处理
     await prisma.$transaction(async (tx) => {
-      // 1. 检查事件是否已处理（幂等性检查）
-      const existingEvent = await tx.paymentEvent.findUnique({
-        where: { stripeEventId: eventId },
-      })
-
-      if (existingEvent) {
-        console.log(`⚠️  事件已处理，跳过：${eventId}`)
-        return // 幂等返回
-      }
-
-      // 2. 记录事件
-      await tx.paymentEvent.create({
-        data: {
-          stripeEventId: eventId,
-          eventType,
-          amountCents: 0, // 根据事件类型填充
-          currency: 'usd',
-          status: 'pending',
-          metadata: event.data.object as any,
-        },
-      })
-
-      // 3. 根据事件类型处理
       switch (event.type) {
         case 'customer.subscription.created':
           await handleSubscriptionCreated(event, tx)
@@ -68,24 +55,11 @@ export async function handleWebhookEvent(event: Stripe.Event) {
         default:
           console.log(`ℹ️  未处理的事件类型：${eventType}`)
       }
-
-      // 4. 更新事件状态
-      await tx.paymentEvent.update({
-        where: { stripeEventId: eventId },
-        data: { status: 'processed' },
-      })
     })
 
     console.log(`✅ Webhook 事件处理完成：${eventId}`)
   } catch (error) {
     console.error(`❌ Webhook 事件处理失败：${eventId}`, error)
-
-    // 更新事件状态为失败
-    await prisma.paymentEvent.update({
-      where: { stripeEventId: eventId },
-      data: { status: 'failed' },
-    })
-
     throw error
   }
 }
@@ -238,13 +212,17 @@ async function handleInvoicePaid(event: Stripe.Event, tx: any) {
 
   if (!customer) return
 
-  // 记录支付事件
-  await tx.paymentEvent.update({
-    where: { stripeEventId: event.id },
+  // 创建支付事件记录
+  await tx.paymentEvent.create({
     data: {
+      billingCustomerId: customer.id,
+      stripeEventId: event.id,
+      stripeInvoiceId: invoice.id,
+      eventType: event.type,
       amountCents: invoice.amount_paid,
       currency: invoice.currency,
-      stripeInvoiceId: invoice.id,
+      status: 'processed',
+      metadata: event.data.object as any,
     },
   })
 
@@ -289,14 +267,17 @@ async function handleInvoicePaymentFailed(event: Stripe.Event, tx: any) {
     })
   }
 
-  // 记录支付事件
-  await tx.paymentEvent.update({
-    where: { stripeEventId: event.id },
+  // 创建支付事件记录
+  await tx.paymentEvent.create({
     data: {
+      billingCustomerId: customer.id,
+      stripeEventId: event.id,
+      stripeInvoiceId: invoice.id,
+      eventType: event.type,
       amountCents: invoice.amount_due,
       currency: invoice.currency,
-      stripeInvoiceId: invoice.id,
       status: 'failed',
+      metadata: event.data.object as any,
     },
   })
 }
