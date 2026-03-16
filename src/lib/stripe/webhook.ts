@@ -95,6 +95,7 @@ async function handleSubscriptionCreated(
   }
 
   // 创建订阅记录
+  const sub = subscription as any
   await tx.subscription.create({
     data: {
       id: `sub_${subscription.id.split('_')[1]}`, // 生成本地 ID
@@ -102,8 +103,8 @@ async function handleSubscriptionCreated(
       stripeSubscriptionId: subscription.id,
       planId: plan.id,
       status: mapSubscriptionStatus(subscription.status),
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
       cancelAtPeriodEnd: false,
     },
   })
@@ -113,8 +114,8 @@ async function handleSubscriptionCreated(
     customer.id,
     `sub_${subscription.id.split('_')[1]}`,
     plan.monthlyCredits,
-    new Date(subscription.current_period_start * 1000),
-    new Date(subscription.current_period_end * 1000),
+    new Date(sub.current_period_start * 1000),
+    new Date(sub.current_period_end * 1000),
     tx
   )
 }
@@ -127,6 +128,7 @@ async function handleSubscriptionUpdated(
   tx: any
 ) {
   const subscription = event.data.object as Stripe.Subscription
+  const sub = subscription as any
   console.log(`🔄 更新订阅：${subscription.id}`)
 
   const localSubscription = await tx.subscription.findUnique({
@@ -142,17 +144,17 @@ async function handleSubscriptionUpdated(
     where: { id: localSubscription.id },
     data: {
       status: mapSubscriptionStatus(subscription.status),
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-      canceledAt: subscription.canceled_at
-        ? new Date(subscription.canceled_at * 1000)
+      currentPeriodStart: new Date(sub.current_period_start * 1000),
+      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+      canceledAt: sub.canceled_at
+        ? new Date(sub.canceled_at * 1000)
         : null,
     },
   })
 
   // 如果是新周期开始，发放积分
-  const periodStart = new Date(subscription.current_period_start * 1000)
+  const periodStart = new Date(sub.current_period_start * 1000)
   const existingPeriod = await tx.creditAllocationPeriod.findFirst({
     where: {
       subscriptionId: localSubscription.id,
@@ -173,7 +175,7 @@ async function handleSubscriptionUpdated(
         localSubscription.id,
         plan.monthlyCredits,
         periodStart,
-        new Date(subscription.current_period_end * 1000),
+        new Date(sub.current_period_end * 1000),
         tx
       )
     }
