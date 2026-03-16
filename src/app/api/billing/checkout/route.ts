@@ -26,14 +26,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. 获取基础 URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                     `https://${req.headers.get('host')}`
 
     // 4. 创建结账会话
+    // 使用 Stripe 的 {CHECKOUT_SESSION_ID} 占位符，Stripe 会自动替换
     const { checkoutUrl, sessionId } = await createBillingCheckout({
       userId: session.user.id,
       planId,
-      successUrl: `${baseUrl}/payment/success?session_id=${sessionId}`,
+      successUrl: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${baseUrl}/payment/cancelled`,
     })
 
