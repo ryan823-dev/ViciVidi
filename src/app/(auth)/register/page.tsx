@@ -187,6 +187,17 @@ export default function RegisterPage() {
           </Link>
         </p>
       </CardFooter>
+
+      {/* Footer Links */}
+      <div className="px-6 pb-4 flex justify-center gap-4">
+        <Link href="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+          Privacy Policy
+        </Link>
+        <span className="text-xs text-muted-foreground">•</span>
+        <Link href="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+          Terms of Service
+        </Link>
+      </div>
     </Card>
   )
 }

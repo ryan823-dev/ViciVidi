@@ -213,6 +213,17 @@ export default function LoginPage() {
           </p>
         </CardFooter>
 
+        {/* Footer Links */}
+        <div className="px-6 pb-4 flex justify-center gap-4">
+          <Link href="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+            Privacy Policy
+          </Link>
+          <span className="text-xs text-muted-foreground">•</span>
+          <Link href="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+            Terms of Service
+          </Link>
+        </div>
+
         {/* Powered by Caesar Engine */}
         <div className="px-6 pb-6 flex justify-center">
           <p className="text-xs text-muted-foreground text-center">
