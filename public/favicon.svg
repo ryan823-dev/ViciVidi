@@ -1,0 +1,33 @@
+<svg width="32" height="32" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="faviconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7C3AED"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Simplified VV mark for favicon -->
+  <path 
+    d="M50 70 L100 150 L150 70" 
+    stroke="url(#faviconGradient)" 
+    stroke-width="16" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <path 
+    d="M65 80 L100 140 L135 80" 
+    stroke="url(#faviconGradient)" 
+    stroke-width="12" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+    opacity="0.75"
+  />
+  <circle 
+    cx="100" 
+    cy="105" 
+    r="10" 
+    fill="url(#faviconGradient)"
+  />
+</svg>

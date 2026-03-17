@@ -98,12 +98,8 @@ export default function LoginPage() {
         <div className="pt-8 pb-4 flex justify-center">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
-            <div className="relative w-16 h-16 bg-gradient-to-br from-primary to-[oklch(0.65_0.28_25)] rounded-2xl flex items-center justify-center shadow-xl">
-              <svg viewBox="0 0 32 32" className="w-10 h-10 text-white" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 6L8 26M8 6L16 14M8 6L16 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
-                <path d="M24 6L24 26M24 6L16 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
-                <path d="M16 14L16 26" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
-              </svg>
+            <div className="relative w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl p-2">
+              <img src="/logo.svg" alt="ViciVidi AI Logo" className="w-full h-full" />
             </div>
           </div>
         </div>

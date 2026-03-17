@@ -1,0 +1,47 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient definition -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7C3AED"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- First V shape (left) -->
+  <path 
+    d="M60 60 L100 140 L140 60" 
+    stroke="url(#logoGradient)" 
+    stroke-width="12" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+    filter="url(#glow)"
+  />
+  
+  <!-- Second V shape (right, mirrored and overlapping) -->
+  <path 
+    d="M70 70 L100 130 L130 70" 
+    stroke="url(#logoGradient)" 
+    stroke-width="10" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+    opacity="0.8"
+  />
+  
+  <!-- Center accent dot -->
+  <circle 
+    cx="100" 
+    cy="100" 
+    r="8" 
+    fill="url(#logoGradient)"
+    filter="url(#glow)"
+  />
+</svg>

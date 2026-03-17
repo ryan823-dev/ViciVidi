@@ -23,8 +23,8 @@ export default function AuthLayout({
         <div className="max-w-md text-primary-foreground p-8 relative z-10">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-xl">VV</span>
+            <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg p-2">
+              <img src="/logo.svg" alt="ViciVidi AI" className="w-full h-full" />
             </div>
             <h1 className="text-4xl font-bold">ViciVidi AI</h1>
           </div>

@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: "ViciVidi AI - B2B Sales Intelligence Platform",
   description: "AI-powered B2B sales intelligence platform. Find qualified leads, enrich company data, and verify email contacts. Powered by Caesar Engine.",
   keywords: ["B2B", "sales intelligence", "lead generation", "email verification", "company data", "ViciVidi", "Caesar Engine"],
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 const locales = ['en', 'zh'] as const;
