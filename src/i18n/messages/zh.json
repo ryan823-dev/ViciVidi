@@ -156,7 +156,41 @@
     "subtitle": "发现和管理潜在客户",
     "discoverLeads": "发现线索",
     "searchPlaceholder": "搜索线索...",
-    "noLeads": "暂无线索"
+    "noLeads": "暂无线索",
+    "discover": {
+      "title": "发现线索",
+      "subtitle": "从 LinkedIn、GitHub、Product Hunt、AngelList 快速找到潜在客户",
+      "button": "立即发现线索",
+      "sources": {
+        "linkedin": "LinkedIn - 全球职场人脉",
+        "github": "GitHub - 开发者社区",
+        "producthunt": "Product Hunt - 新产品发布",
+        "angellist": "AngelList - 初创企业"
+      },
+      "form": {
+        "source": "数据源",
+        "keywords": "关键词",
+        "location": "地区",
+        "industry": "行业",
+        "technologies": "技术栈",
+        "search": "开始搜索",
+        "estimated": "预计发现 {count} 条线索"
+      },
+      "results": {
+        "title": "发现结果",
+        "selectAll": "全选",
+        "importSelected": "导入选中的 {count} 条线索",
+        "importAll": "全部导入",
+        "importing": "导入中...",
+        "success": "成功导入 {count} 条线索"
+      },
+      "features": {
+        "fast": "5-10 秒快速发现",
+        "dedup": "自动去重",
+        "scoring": "AI 智能评分",
+        "batch": "批量导入"
+      }
+    }
   },
   "schedules": {
     "title": "计划任务",
@@ -230,22 +264,12 @@
     "resumeSubscription": "恢复订阅"
   },
   "nav": {
-    "dashboard": "仪表盘",
-    "companies": "公司",
     "leads": "线索",
-    "lists": "列表",
-    "schedules": "计划任务",
+    "companies": "公司",
     "analytics": "数据分析",
-    "costs": "成本",
-    "duplicates": "重复记录",
-    "notifications": "通知",
-    "addons": "增值服务",
-    "apiAccess": "API 访问",
-    "apiKeys": "API密钥",
     "billing": "计费",
     "team": "团队",
     "settings": "设置",
-    "quota": "配额",
     "logout": "退出登录"
   },
   "footer": {

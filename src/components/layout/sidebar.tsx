@@ -6,22 +6,10 @@ import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import {
   Building2,
-  LayoutDashboard,
-  List,
-  Settings,
-  LogOut,
+  BarChart3,
   Menu,
   X,
-  TrendingUp,
-  CreditCard,
-  Zap,
-  Users,
-  DollarSign,
-  Clock,
-  Copy,
-  Bell,
-  BarChart3,
-  Key
+  Target,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -42,20 +30,9 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const navItems = [
-    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/leads', label: t('leads'), icon: Target },
     { href: '/companies', label: t('companies'), icon: Building2 },
-    { href: '/lists', label: t('lists'), icon: List },
-    { href: '/addons', label: t('addons'), icon: Zap },
-    { href: '/team', label: t('team'), icon: Users },
-    { href: '/schedules', label: t('schedules'), icon: Clock },
-    { href: '/duplicates', label: t('duplicates'), icon: Copy },
-    { href: '/notifications', label: t('notifications'), icon: Bell },
     { href: '/analytics', label: t('analytics'), icon: BarChart3 },
-    { href: '/settings/quota', label: t('quota'), icon: TrendingUp },
-    { href: '/costs', label: t('costs'), icon: DollarSign },
-    { href: '/subscription/manage', label: t('billing'), icon: CreditCard },
-    { href: '/settings/api-keys', label: t('apiKeys'), icon: Key },
-    { href: '/settings', label: t('settings'), icon: Settings },
   ]
 
   return (

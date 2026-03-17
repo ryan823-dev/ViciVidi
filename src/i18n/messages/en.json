@@ -156,7 +156,41 @@
     "subtitle": "Discover and manage potential customers",
     "discoverLeads": "Discover Leads",
     "searchPlaceholder": "Search leads...",
-    "noLeads": "No leads yet"
+    "noLeads": "No leads yet",
+    "discover": {
+      "title": "Discover Leads",
+      "subtitle": "Quickly find potential customers from LinkedIn, GitHub, Product Hunt, and AngelList",
+      "button": "Discover Now",
+      "sources": {
+        "linkedin": "LinkedIn - Global Professional Network",
+        "github": "GitHub - Developer Community",
+        "producthunt": "Product Hunt - New Product Launches",
+        "angellist": "AngelList - Startups"
+      },
+      "form": {
+        "source": "Data Source",
+        "keywords": "Keywords",
+        "location": "Location",
+        "industry": "Industry",
+        "technologies": "Technologies",
+        "search": "Start Search",
+        "estimated": "Estimated {count} leads"
+      },
+      "results": {
+        "title": "Discovery Results",
+        "selectAll": "Select All",
+        "importSelected": "Import {count} Selected Leads",
+        "importAll": "Import All",
+        "importing": "Importing...",
+        "success": "Successfully imported {count} leads"
+      },
+      "features": {
+        "fast": "5-10 Second Discovery",
+        "dedup": "Auto Deduplication",
+        "scoring": "AI Smart Scoring",
+        "batch": "Batch Import"
+      }
+    }
   },
   "schedules": {
     "title": "Schedules",
@@ -230,23 +264,13 @@
     "resumeSubscription": "Resume Subscription"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "companies": "Companies",
     "leads": "Leads",
-    "lists": "Lists",
-    "schedules": "Schedules",
+    "companies": "Companies",
     "analytics": "Analytics",
-    "costs": "Costs",
-    "duplicates": "Duplicates",
-    "notifications": "Notifications",
-    "addons": "Add-ons",
-    "apiAccess": "API Access",
-    "apiKeys": "API Keys",
     "billing": "Billing",
     "team": "Team",
     "settings": "Settings",
-    "quota": "Quota",
-    "logout": "Sign Out"
+    "logout": "Logout"
   },
   "footer": {
     "poweredBy": "Powered by",

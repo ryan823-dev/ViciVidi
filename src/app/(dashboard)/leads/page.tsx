@@ -28,6 +28,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { LeadDiscoveryDialog } from '@/components/leads/lead-discovery-dialog'
 import { 
   Plus, 
   Search, 
@@ -46,7 +47,8 @@ import {
   Sparkles,
   Zap,
   Target,
-  Star
+  Star,
+  Compass
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -98,6 +100,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [tierFilter, setStatusTier] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [discoveryOpen, setDiscoveryOpen] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
 
   const loadLeads = useCallback(async () => {
@@ -174,34 +177,67 @@ export default function LeadsPage() {
 
   return (
     <div className="space-y-8">
-      {/* 头部 - 渐变背景 */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 border border-primary/20 shadow-glow-sm">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl opacity-30" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-chart-2/20 to-transparent rounded-full blur-3xl opacity-30" />
-        
-        <div className="relative flex items-center justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium text-primary">AI-Powered</span>
+      {/* 发现线索区域 */}
+      <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent">
+        <CardContent className="p-8">
+          <div className="flex items-start justify-between gap-6 mb-6">
+            <div className="space-y-3 flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                <Compass className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">智能获客</span>
+              </div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent">
+                🔍 发现线索
+              </h2>
+              <p className="text-muted-foreground max-w-2xl">
+                从 LinkedIn、GitHub、Product Hunt、AngelList 快速找到潜在客户，AI 自动评分和丰富数据
+              </p>
+              
+              <div className="flex gap-4 pt-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Building2 className="h-4 w-4" />
+                  <span>LinkedIn 公司库</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Sparkles className="h-4 w-4" />
+                  <span>GitHub 技术组织</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Product Hunt 新品</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Target className="h-4 w-4" />
+                  <span>AngelList 初创企业</span>
+                </div>
+              </div>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-chart-2 bg-clip-text text-transparent">
-              获客线索
-            </h1>
-            <p className="text-muted-foreground text-sm max-w-md">
-              智能发现、评分和转化高质量 B2B 销售线索
-            </p>
+            
+            <Button 
+              onClick={() => setDiscoveryOpen(true)}
+              className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary/90 hover:to-primary-glow/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-105 flex-shrink-0 h-14 px-8 text-lg"
+              size="lg"
+            >
+              <Compass className="h-5 w-5 mr-2" />
+              立即发现线索
+            </Button>
           </div>
-          <Button 
-            onClick={() => setDialogOpen(true)}
-            className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary/90 hover:to-primary-glow/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-105"
-            size="lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            新建线索
-          </Button>
-        </div>
-      </div>
+          
+          <div className="flex items-center gap-4 text-xs text-muted-foreground bg-background/50 rounded-lg p-3">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span>预计耗时：5-10 秒</span>
+            <span className="mx-2">•</span>
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span>自动去重检测</span>
+            <span className="mx-2">•</span>
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span>AI 智能评分</span>
+            <span className="mx-2">•</span>
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span>批量导入</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 统计卡片 - 玻璃态设计 */}
       <div className="grid gap-6 md:grid-cols-4">
@@ -662,6 +698,9 @@ export default function LeadsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* 线索发现对话框 */}
+      <LeadDiscoveryDialog open={discoveryOpen} onOpenChange={setDiscoveryOpen} />
     </div>
   )
 }

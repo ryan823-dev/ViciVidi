@@ -33,7 +33,7 @@ export default function LoginPage() {
     if (!hasSupabaseConfig && isDev) {
       // 模拟登录成功
       setTimeout(() => {
-        router.push('/dashboard')
+        router.push('/leads')
       }, 500)
       return
     }
@@ -51,7 +51,7 @@ export default function LoginPage() {
         ? t('invalidCredentials')
         : error.message)
     } else {
-      router.push('/dashboard')
+      router.push('/leads')
       router.refresh()
     }
   }
