@@ -76,17 +76,25 @@ export function Sidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-4 border-b">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] rounded-lg blur opacity-75 group-hover:opacity-100 transition-opacity" />
-              <div className="relative w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-lg p-1">
-                <img src="/logo.svg" alt="ViciVidi AI" className="w-full h-full" />
+          {/* Logo Header - Enhanced with gradient background */}
+          <div className="relative px-6 py-5 border-b bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] rounded-xl blur-md opacity-75 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg p-1.5 border border-primary/20">
+                  <img src="/logo.svg" alt="ViciVidi AI" className="w-full h-full" />
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-lg bg-gradient-to-r from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent leading-tight">ViciVidi</span>
-              <span className="text-[10px] text-muted-foreground font-medium tracking-wide">AI</span>
+              <div className="flex flex-col">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold text-xl bg-gradient-to-r from-primary via-[oklch(0.55_0.30_320)] to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent leading-tight">ViciVidi</span>
+                  <span className="text-xs font-semibold text-primary/70">AI</span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[9px] text-muted-foreground font-medium tracking-wide uppercase">Powered by</span>
+                  <span className="text-[9px] font-semibold bg-gradient-to-r from-[oklch(0.58_0.13_65)] to-[oklch(0.72_0.19_75)] bg-clip-text text-transparent">Caesar Engine</span>
+                </div>
+              </div>
             </div>
           </div>
 
