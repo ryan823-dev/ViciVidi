@@ -105,11 +105,9 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="relative z-10">
-            <Button asChild className="w-full bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] hover:opacity-90 transition-opacity">
-              <a href="/companies" className="flex items-center justify-center gap-2">
-                {tQuickStart('addFirst')}
-                <ArrowRight className="h-4 w-4" />
-              </a>
+            <Button onClick={() => window.location.href = '/companies'} className="w-full bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+              {tQuickStart('addFirst')}
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
