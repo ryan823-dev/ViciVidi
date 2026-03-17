@@ -5,13 +5,12 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
 }
 
 // ==================== TENANT & AUTH ====================
 
 model Tenant {
-  id          String    @id @default(cuid())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   slug        String    @unique
   domain      String?
@@ -51,7 +50,7 @@ model Tenant {
 }
 
 model WebsiteConfig {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String   @unique
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   url             String?
@@ -85,7 +84,7 @@ enum PushStatus {
 }
 
 model PushRecord {
-  id              String     @id @default(cuid())
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
 
   // 关联内容
@@ -93,7 +92,7 @@ model PushRecord {
   content         SeoContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   // 目标站点
-  websiteConfigId String
+  websiteConfigId String @db.ObjectId
   websiteConfig   WebsiteConfig @relation(fields: [websiteConfigId], references: [id], onDelete: Cascade)
 
   // 推送状态
@@ -126,13 +125,13 @@ model PushRecord {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
   email         String    @unique
   emailVerified DateTime?
   name          String?
   image         String?
   password      String?
-  tenantId      String
+  tenantId      String @db.ObjectId
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   roleId        String
   role          Role      @relation(fields: [roleId], references: [id])
@@ -165,7 +164,7 @@ model User {
 }
 
 model Role {
-  id           String   @id @default(cuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String   @unique
   displayName  String
   permissions  Json
@@ -177,7 +176,7 @@ model Role {
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
   userId            String
   type              String
   provider          String
@@ -197,7 +196,7 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -215,7 +214,7 @@ model VerificationToken {
 }
 
 model ApiKey {
-  id          String    @id @default(cuid())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -234,7 +233,7 @@ model ApiKey {
 // ==================== MODULE 1: PRODUCTS ====================
 
 model Product {
-  id              String    @id @default(cuid())
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sku             String?
@@ -259,7 +258,7 @@ model Product {
 }
 
 model ProductImage {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
@@ -271,7 +270,7 @@ model ProductImage {
 }
 
 model ProductSpec {
-  id        String  @id @default(cuid())
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   key       String
@@ -283,7 +282,7 @@ model ProductSpec {
 }
 
 model ProductCategory {
-  id        String  @id @default(cuid())
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   name      String
@@ -295,8 +294,8 @@ model ProductCategory {
 // ==================== MODULE 2: SEO & GEO CONTENT ====================
 
 model SeoAudit {
-  id            String    @id @default(cuid())
-  tenantId      String
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String @db.ObjectId
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId        String
   user          User      @relation(fields: [userId], references: [id])
@@ -319,7 +318,7 @@ model SeoAudit {
 }
 
 model ContentCategory {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -337,7 +336,7 @@ model ContentCategory {
 }
 
 model SeoContent {
-  id              String          @id @default(cuid())
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   categoryId      String
@@ -379,7 +378,7 @@ model SeoContent {
 // ==================== MODULE 3: SOCIAL MEDIA ====================
 
 model SocialAccount {
-  id           String    @id @default(cuid())
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId     String
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   platform     String
@@ -398,7 +397,7 @@ model SocialAccount {
 }
 
 model SocialPost {
-  id           String    @id @default(cuid())
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId     String
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   authorId     String
@@ -422,7 +421,7 @@ model SocialPost {
 }
 
 model PostVersion {
-  id              String     @id @default(cuid())
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
   postId          String
   post            SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   platform        String
@@ -440,7 +439,7 @@ model PostVersion {
 // ==================== MODULE 4: AI LEAD GENERATION ====================
 
 model Lead {
-  id              String    @id @default(cuid())
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ownerId         String
@@ -472,7 +471,7 @@ model Lead {
 }
 
 model Campaign {
-  id             String    @id @default(cuid())
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId       String
   tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name           String
@@ -494,7 +493,7 @@ model Campaign {
 }
 
 model CampaignLead {
-  id                  String    @id @default(cuid())
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
   campaignId          String
   campaign            Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   leadId              String
@@ -515,7 +514,7 @@ model CampaignLead {
 // ==================== SYSTEM ====================
 
 model Activity {
-  id         String   @id @default(cuid())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId     String
@@ -569,7 +568,7 @@ enum ArtifactStatus {
 }
 
 model CompanyProfile {
-  id       String @id @default(cuid())
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
   tenantId String @unique
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -609,7 +608,7 @@ model CompanyProfile {
 // ==================== MODULE 5: ASSET HUB ====================
 
 model AssetFolder {
-  id          String        @id @default(cuid())
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -630,7 +629,7 @@ model AssetFolder {
 }
 
 model Asset {
-  id           String       @id @default(cuid())
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
   tenantId     String
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   uploadedById String
@@ -674,7 +673,7 @@ model Asset {
 // ==================== ASSET CHUNKS (文本分块) ====================
 
 model AssetChunk {
-  id         String   @id @default(cuid())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   assetId    String
@@ -699,8 +698,8 @@ model AssetChunk {
 // ==================== EVIDENCE (证据库) ====================
 
 model Evidence {
-  id            String       @id @default(cuid())
-  tenantId      String
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String @db.ObjectId
   tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   title         String
   content       String       @db.Text
@@ -727,7 +726,7 @@ model Evidence {
 // ==================== BRAND GUIDELINES (品牌规范) ====================
 
 model BrandGuideline {
-  id        String            @id @default(cuid())
+  id        String            @id @default(auto()) @map("_id") @db.ObjectId
   tenantId  String
   tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category  GuidelineCategory
@@ -746,7 +745,7 @@ model BrandGuideline {
 // ==================== ICP & PERSONA (画像中心) ====================
 
 model ICPSegment {
-  id          String    @id @default(cuid())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -765,7 +764,7 @@ model ICPSegment {
 }
 
 model Persona {
-  id              String        @id @default(cuid())
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   segmentId       String?
@@ -788,7 +787,7 @@ model Persona {
 }
 
 model MessagingMatrix {
-  id           String   @id @default(cuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   personaId    String
@@ -807,7 +806,7 @@ model MessagingMatrix {
 // ==================== Phase 3: ARTIFACT VERSIONING ====================
 
 model ArtifactVersion {
-  id          String         @id @default(cuid())
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
   tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   entityType  String         // "CompanyProfile"|"Evidence"|"BrandGuideline"|"Persona"|"ContentBrief"|"SeoContent"
@@ -832,7 +831,7 @@ model ArtifactVersion {
 // ==================== Phase 3: CONTENT BRIEF ====================
 
 model ContentBrief {
-  id              String    @id @default(cuid())
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   title           String
@@ -860,7 +859,7 @@ model ContentBrief {
 // ==================== Phase 3: ARTIFACT COLLABORATION ====================
 
 model ArtifactComment {
-  id         String           @id @default(cuid())
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
   tenantId   String
   versionId  String
   version    ArtifactVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
@@ -888,7 +887,7 @@ model ArtifactComment {
 }
 
 model ArtifactTask {
-  id          String           @id @default(cuid())
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
   versionId   String
   version     ArtifactVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
@@ -915,7 +914,7 @@ model ArtifactTask {
 // ==================== Phase 3: DECISION CENTER CHAT ====================
 
 model ChatConversation {
-  id              String        @id @default(cuid())
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId          String
@@ -931,7 +930,7 @@ model ChatConversation {
 }
 
 model ChatMessage {
-  id             String           @id @default(cuid())
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
   conversationId String
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           String           // "user"|"assistant"|"system"
@@ -1008,7 +1007,7 @@ enum OpportunityStage {
 // ==================== 数据源目录 ====================
 
 model RadarSource {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String?  // null = 系统级公共源
   
   // 分类
@@ -1058,7 +1057,7 @@ model RadarSource {
 // ==================== 发现任务 ====================
 
 model RadarTask {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   
   // 任务配置
@@ -1099,7 +1098,7 @@ model RadarTask {
 // ==================== 统一候选池 ====================
 
 model RadarCandidate {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   
   // 来源追溯（必须）
@@ -1188,7 +1187,7 @@ model RadarCandidate {
 // ==================== 正式线索公司 ====================
 
 model ProspectCompany {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   
   // 公司信息
@@ -1236,7 +1235,7 @@ model ProspectCompany {
 // ==================== 正式联系人 ====================
 
 model ProspectContact {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   
   // 关联公司
@@ -1272,7 +1271,7 @@ model ProspectContact {
 // ==================== 正式机会（招标转化后） ====================
 
 model Opportunity {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   
   // 关联公司
@@ -1323,7 +1322,7 @@ model Opportunity {
 // ==================== 搜索配置（定时监控） ====================
 
 model RadarSearchProfile {
-  id              String   @id @default(cuid())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId        String
   
   name            String
@@ -1375,7 +1374,7 @@ model RadarSearchProfile {
 // ==================== 扫描游标（持续增量） ====================
 
 model RadarScanCursor {
-  id           String   @id @default(cuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   profileId    String
   sourceId     String
 
@@ -1399,7 +1398,7 @@ model RadarScanCursor {
 // ==================== 意图信号追踪 ====================
 
 model IntentSignal {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
 
   // 关联实体
@@ -1436,7 +1435,7 @@ model IntentSignal {
 // ==================== Webhook集成 ====================
 
 model WebhookConfig {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
 
   // Webhook配置
@@ -1468,8 +1467,8 @@ model WebhookConfig {
 }
 
 model WebhookLog {
-  id            String   @id @default(cuid())
-  tenantId      String
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String @db.ObjectId
   webhookId     String
 
   // 触发事件
@@ -1499,7 +1498,7 @@ model WebhookLog {
 // ==================== API调用日志（成本追踪） ====================
 
 model ApiCallLog {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
 
   // 服务信息
   service     String   // google_places, apollo, skrapp, hunter, brave_search
@@ -1526,7 +1525,7 @@ model ApiCallLog {
 // ==================== 统一API密钥管理（Tower后台） ====================
 
 model ApiKeyConfig {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
 
   // 服务名称
   service     String   @unique // google_places, apollo, skrapp, hunter, brave_search, firecrawl
@@ -1557,7 +1556,7 @@ model ApiKeyConfig {
 // ==================== 外联邮件记录 ====================
 
 model OutreachRecord {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   tenantId    String
 
   // 关联候选
