@@ -1,8 +1,15 @@
+'use client'
+
+import { useTranslations } from 'next-intl'
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const t = useTranslations('auth.login')
+  const tFooter = useTranslations('footer')
+
   return (
     <div className="min-h-screen flex">
       {/* Left side - Branding */}
@@ -23,30 +30,30 @@ export default function AuthLayout({
           </div>
           
           <p className="text-lg opacity-90 mb-8">
-            AI驱动的B2B销售线索研究平台，帮你找到精准客户。
+            {t('subtitle')}
           </p>
           
           <ul className="space-y-4">
             <li className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
               <span className="w-2 h-2 bg-white rounded-full" />
-              公司智能匹配
+              Company Intelligence Matching
             </li>
             <li className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
               <span className="w-2 h-2 bg-white rounded-full" />
-              数据自动丰富
+              Automated Data Enrichment
             </li>
             <li className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
               <span className="w-2 h-2 bg-white rounded-full" />
-              邮箱精准验证
+              Precise Email Verification
             </li>
           </ul>
           
           {/* Powered by Caesar Engine */}
           <div className="mt-12 pt-6 border-t border-white/20">
             <p className="text-sm opacity-70">
-              Powered by{' '}
+              {tFooter('poweredBy')}{' '}
               <span className="font-semibold text-white">
-                Caesar Engine
+                {tFooter('caesarEngine')}
               </span>
             </p>
           </div>
