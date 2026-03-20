@@ -14,17 +14,20 @@
 
 2. **复制以下 SQL 代码**：
 ```sql
--- 添加管理员角色字段
-ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "role" TEXT DEFAULT 'user';
+-- 第一步：检查当前数据库中有哪些表
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
 
--- 创建索引
-CREATE INDEX IF NOT EXISTS "users_role_idx" ON "users"("role");
+-- 第二步：检查 users 表的结构（确认是否有 role 字段）
+-- 运行上面的查询后，看看有没有 "users" 表
 
--- 设置你为管理员（这会自动识别当前登录的用户）
-UPDATE "users" SET role = 'admin' WHERE id = auth.uid();
+-- 第三步：添加 role 字段（如果 users 表存在）
+ALTER TABLE "public"."users" ADD COLUMN IF NOT EXISTS "role" TEXT DEFAULT 'user';
 
--- 验证是否成功
-SELECT id, email, role FROM "users" ORDER BY created_at DESC LIMIT 1;
+-- 第四步：设置管理员权限（使用您的邮箱）
+UPDATE "public"."users" SET role = 'admin' WHERE email = 'congrenmao799@gmail.com';
+
+-- 第五步：验证设置结果
+SELECT id, email, role, name, created_at FROM "public"."users" WHERE email = 'congrenmao799@gmail.com';
 ```
 
 3. **点击 "Run" 按钮**（蓝色按钮）

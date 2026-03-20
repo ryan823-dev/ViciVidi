@@ -19,7 +19,10 @@ export default async function AdminPage() {
     .eq('id', user.id)
     .single()
 
-  if (userData?.role !== 'admin') {
+  // 临时开发模式：允许管理员邮箱直接访问（用于首次设置）
+  const isAdminEmail = userData?.email === 'congrenmao799@gmail.com'
+  
+  if (userData?.role !== 'admin' && !isAdminEmail) {
     redirect('/leads')
   }
 
