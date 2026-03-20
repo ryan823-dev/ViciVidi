@@ -1,3 +1,6 @@
+// 强制动态渲染，禁用缓存
+export const dynamic = 'force-dynamic'
+
 export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -10,9 +13,6 @@ export default function AdminPage() {
         </p>
         <div className="bg-white p-6 rounded-lg shadow">
           <p className="text-gray-700">如果您看到这个页面，说明路由配置正确。</p>
-          <p className="text-gray-500 mt-2 text-sm">
-            请先登录后再访问完整的管理功能。
-          </p>
         </div>
       </div>
     </div>
