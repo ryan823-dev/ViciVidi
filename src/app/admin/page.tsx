@@ -100,7 +100,7 @@ export default function AdminUsersPage() {
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const stats = [
+  const statsCards = [
     {
       title: '总用户数',
       value: stats.totalUsers.toString(),
