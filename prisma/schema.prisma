@@ -19,6 +19,7 @@ model User {
   name          String?
   image         String?
   emailVerified DateTime?
+  role          String    @default("user") // user, admin
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -27,6 +28,7 @@ model User {
   userSubscription UserSubscription?
 
   @@index([email])
+  @@index([role])
   @@map("users")
 }
 
