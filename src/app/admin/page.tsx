@@ -139,7 +139,7 @@ export default function AdminUsersPage() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => {
+        {statsCards.map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.title} className="relative overflow-hidden">
@@ -245,7 +245,7 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger >
                           <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>

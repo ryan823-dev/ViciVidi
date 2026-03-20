@@ -18,7 +18,7 @@ export function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger >
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src="" />
@@ -26,20 +26,20 @@ export function UserMenu() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuItem asChild>
+      <DropdownMenuContent className="w-56" align="end" >
+        <DropdownMenuItem >
           <Link href="/billing" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
             {t('billing')}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
+        <DropdownMenuItem >
           <Link href="/team" className="flex items-center">
             <Users className="mr-2 h-4 w-4" />
             {t('team')}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
+        <DropdownMenuItem >
           <Link href="/settings" className="flex items-center">
             <Settings className="mr-2 h-4 w-4" />
             {t('settings')}

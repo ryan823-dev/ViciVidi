@@ -131,7 +131,7 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="defaultLanguage">默认语言</Label>
                   <Select
                     value={settings.defaultLanguage}
-                    onValueChange={(value) => setSettings({ ...settings, defaultLanguage: value })}
+                    onValueChange={(value) => setSettings({ ...settings, defaultLanguage: value ?? 'zh-CN' })}
                   >
                     <SelectTrigger>
                       <SelectValue />
