@@ -1,29 +1,21 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
 export default async function AdminPage() {
   const supabase = await createClient()
 
-  // 检查用户是否登录
+  // 获取当前用户（如果已登录）
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  // 检查用户角色
-  const { data: userData } = await supabase
-    .from('users')
-    .select('role, email, name')
-    .eq('id', user.id)
-    .single()
-
-  // 临时开发模式：允许管理员邮箱直接访问（用于首次设置）
-  const isAdminEmail = userData?.email === 'congrenmao799@gmail.com'
-  
-  if (userData?.role !== 'admin' && !isAdminEmail) {
-    redirect('/leads')
+  // 如果已登录，检查用户角色
+  let userData = null
+  if (user) {
+    const result = await supabase
+      .from('users')
+      .select('role, email, name')
+      .eq('id', user.id)
+      .single()
+    userData = result.data
   }
 
   // 获取统计数据
