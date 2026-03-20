@@ -56,8 +56,8 @@ import {
 } from '@/actions/radar-v2';
 import { getRadarPipelineStatus } from '@/actions/radar-pipeline';
 import type { RadarPipelineStatus } from '@/lib/radar/pipeline';
-import type { RadarCandidate, RadarSource } from '@/generated/prisma/client';
-import type { CandidateType, CandidateStatus } from '@/generated/prisma/enums';
+import type { RadarCandidate, RadarSource } from '@prisma/client';
+import type { CandidateType, CandidateStatus } from '@prisma/client';
 import { RadarHeader } from '@/components/radar/radar-header';
 
 // ==================== 类型 ====================

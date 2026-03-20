@@ -23,8 +23,8 @@ import {
   getOpportunitiesV2,
   updateOpportunityStageV2,
 } from '@/actions/radar-v2';
-import type { Opportunity, ProspectCompany } from '@/generated/prisma/client';
-import type { OpportunityStage } from '@/generated/prisma/enums';
+import type { Opportunity, ProspectCompany } from '@prisma/client';
+import type { OpportunityStage } from '@prisma/client';
 
 // ==================== 类型 ====================
 

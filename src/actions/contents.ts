@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { chatCompletion } from "@/lib/ai-client";
 import { logActivity, ACTIVITY_ACTIONS, EVENT_CATEGORIES } from "@/lib/utils/activity-logger";
 import { createVersion } from "@/actions/versions";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 
 // ==================== Types ====================
 

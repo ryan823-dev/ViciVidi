@@ -32,8 +32,8 @@ import {
   initializeSystemSourcesV2,
 } from '@/actions/radar-v2';
 import { getLatestTargetingSpec } from '@/actions/sync';
-import type { RadarTask, RadarSource } from '@/generated/prisma/client';
-import type { RadarTaskStatus, ChannelType } from '@/generated/prisma/enums';
+import type { RadarTask, RadarSource } from '@prisma/client';
+import type { RadarTaskStatus, ChannelType } from '@prisma/client';
 import { toast } from 'sonner';
 
 // ==================== 类型 ====================

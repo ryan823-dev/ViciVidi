@@ -1,4 +1,4 @@
-import type { Asset, AssetFolder, User } from "@/generated/prisma/client";
+import type { Asset, AssetFolder, User } from "@prisma/client";
 import type { AssetProcessingMeta } from "@/types/knowledge";
 
 // ==================== 基础类型 ====================
