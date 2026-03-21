@@ -20,3 +20,6 @@ export { HunterAdapter } from './hunter';
 export { PeopleDataLabsAdapter } from './pdl';
 export { TavilyAdapter } from './tavily';
 export { ExaAdapter } from './exa';
+export { ICPMatchingAdapter } from './icp-matching';
+export { GoogleAlertsAdapter } from './google-alerts';
+export { DirectoryAdapter, getDirectorySourcesByCountry, getDirectorySourcesByIndustry } from './directory';
