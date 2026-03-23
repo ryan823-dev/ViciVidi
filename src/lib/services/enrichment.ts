@@ -630,8 +630,8 @@ async function updateApiUsage(service: string): Promise<void> {
         currentUsage: { increment: 1 },
       },
     });
-  } catch {
-    // 静默失败
+  } catch (error) {
+    console.warn('[incrementApiUsage] Failed to update usage:', error);
   }
 }
 

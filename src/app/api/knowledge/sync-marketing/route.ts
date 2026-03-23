@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
       let jsonStr = aiResponse.content.trim();
       if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
       parsed = JSON.parse(jsonStr);
-    } catch {
+    } catch (error) {
+      console.warn('[sync-marketing] JSON parse failed:', String(error));
       parsed = { rawContent: aiResponse.content };
     }
 

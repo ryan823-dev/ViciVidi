@@ -180,7 +180,8 @@ async function generateChunkSummary(chunkText: string): Promise<string> {
 
     const data = await response.json();
     return data.choices?.[0]?.message?.content || "";
-  } catch {
+  } catch (error) {
+    console.warn('[summarizeContent] OpenAI call failed:', error);
     return "";
   }
 }

@@ -125,68 +125,113 @@ export async function logRadarError(
   adapter: string,
   operation: string,
   error: string,
-  candidateId?: string
+  candidateId?: string,
+  tenantId?: string
 ): Promise<void> {
-  // TODO: 等 Prisma 重新生成后启用
-  // try {
-  //   await db.radarError.create({
-  //     data: {
-  //       adapter,
-  //       operation,
-  //       error: error.slice(0, 1000),
-  //       candidateId,
-  //       timestamp: new Date(),
-  //     },
-  //   });
-  // } catch (dbError) {
-  console.error("[RadarMonitor] Log error:", { adapter, operation, error, candidateId });
-  // }
+  try {
+    await db.radarError.create({
+      data: {
+        adapter,
+        operation,
+        error: error.slice(0, 1000),
+        candidateId,
+        tenantId: tenantId || 'system',
+        timestamp: new Date(),
+      },
+    });
+  } catch (dbError) {
+    // 降级处理：仅打印日志
+    console.error("[RadarMonitor] Failed to log error to DB:", {
+      adapter,
+      operation,
+      error: error.slice(0, 200),
+      candidateId,
+      dbError: dbError instanceof Error ? dbError.message : String(dbError),
+    });
+  }
 }
 
 /**
  * 获取最近错误
  */
 export async function getRecentErrors(
-  _adapter?: string,
+  adapter?: string,
   hours = 24
 ): Promise<RadarError[]> {
-  // TODO: 等 Prisma 重新生成后启用
-  // try {
-  //   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-  //   const errors = await db.radarError.findMany({
-  //     where: { timestamp: { gte: since } },
-  //     orderBy: { timestamp: "desc" },
-  //     take: 100,
-  //   });
-  //   return errors.map((e) => ({
-  //     timestamp: e.timestamp,
-  //     adapter: e.adapter,
-  //     operation: e.operation,
-  //     error: e.error,
-  //     candidateId: e.candidateId || undefined,
-  //   }));
-  // } catch {
-  //   return [];
-  // }
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
 
-  // 临时返回空数组
-  return [];
+    const whereClause = adapter
+      ? { adapter, timestamp: { gte: since } }
+      : { timestamp: { gte: since } };
+
+    const errors = await db.radarError.findMany({
+      where: whereClause,
+      orderBy: { timestamp: "desc" },
+      take: 100,
+    });
+
+    return errors.map((e) => ({
+      timestamp: e.timestamp,
+      adapter: e.adapter,
+      operation: e.operation,
+      error: e.error,
+      candidateId: e.candidateId || undefined,
+    }));
+  } catch (dbError) {
+    console.error("[RadarMonitor] Failed to fetch errors:", dbError);
+    return [];
+  }
 }
 
 // ==================== 候选新鲜度 ====================
 
 /**
  * 检查候选数据新鲜度
+ *
+ * 分类标准：
+ * - fresh: 7天内更新
+ * - stale: 7-30天更新
+ * - old: 超过30天未更新
  */
-export async function checkCandidateFreshness(): Promise<{
+export async function checkCandidateFreshness(tenantId?: string): Promise<{
   total: number;
   fresh: number;
   stale: number;
   old: number;
 }> {
-  // TODO: 等 Prisma 重新生成后完善
-  // 临时返回模拟数据
-  return { total: 0, fresh: 0, stale: 0, old: 0 };
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  try {
+    const whereClause = tenantId ? { tenantId } : {};
+
+    const [total, fresh, stale, old] = await Promise.all([
+      // 总数
+      db.radarCandidate.count({ where: whereClause }),
+      // 新鲜（7天内）
+      db.radarCandidate.count({
+        where: { ...whereClause, updatedAt: { gte: sevenDaysAgo } },
+      }),
+      // 较旧（7-30天）
+      db.radarCandidate.count({
+        where: {
+          ...whereClause,
+          updatedAt: { gte: thirtyDaysAgo, lt: sevenDaysAgo },
+        },
+      }),
+      // 过期（超过30天）
+      db.radarCandidate.count({
+        where: { ...whereClause, updatedAt: { lt: thirtyDaysAgo } },
+      }),
+    ]);
+
+    return { total, fresh, stale, old };
+  } catch (error) {
+    console.error("[RadarMonitor] Failed to check freshness:", error);
+    return { total: 0, fresh: 0, stale: 0, old: 0 };
+  }
 }
 
 // ==================== 完整健康报告 ====================

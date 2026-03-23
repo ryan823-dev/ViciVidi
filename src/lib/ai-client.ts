@@ -215,7 +215,8 @@ export async function analyzeCompanyProfile(
   let analysis: Record<string, unknown>;
   try {
     analysis = JSON.parse(jsonStr);
-  } catch {
+  } catch (error) {
+    console.error('[parseAIResponse] JSON parse error:', error);
     throw new Error("AI 返回的分析结果格式异常，请重试");
   }
 

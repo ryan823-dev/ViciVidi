@@ -24,7 +24,8 @@ function isValidTargetUrl(url: string): boolean {
     }
     
     return false;
-  } catch {
+  } catch (error) {
+    console.debug('[isLocalhost] Check failed:', String(error));
     return false;
   }
 }

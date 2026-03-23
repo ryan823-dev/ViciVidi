@@ -149,7 +149,8 @@ export async function refreshTokenIfNeeded(account: {
     const result = await getLongLivedToken(account.accessToken);
     const expiresAt = new Date(Date.now() + (result.expiresIn || 5184000) * 1000);
     return { accessToken: result.accessToken, expiresAt };
-  } catch {
+  } catch (error) {
+    console.warn('[refreshFacebookToken] Token refresh failed:', error);
     return null;
   }
 }

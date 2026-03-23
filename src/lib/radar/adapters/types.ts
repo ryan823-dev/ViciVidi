@@ -112,6 +112,8 @@ export interface RadarSearchResult {
     query: RadarSearchQuery;
     fetchedAt: Date;
     duration: number;
+    // 扩展属性
+    [key: string]: unknown;
   };
   // === 持续扫描游标 ===
   nextCursor?: {

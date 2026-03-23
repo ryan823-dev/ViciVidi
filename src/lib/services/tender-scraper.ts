@@ -402,7 +402,8 @@ function extractDomain(url: string): string {
   try {
     const parsed = new URL(url);
     return parsed.hostname.replace('www.', '');
-  } catch {
+  } catch (error) {
+    console.warn('[extractDomain] URL parse error:', error);
     return '';
   }
 }

@@ -362,7 +362,8 @@ ${JSON.stringify(valueProps.map(v => ({ valueProp: v, message: "..." })))}
     let jsonStr = response.content.trim();
     if (jsonStr.startsWith("```")) jsonStr = jsonStr.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     messages = JSON.parse(jsonStr);
-  } catch {
+  } catch (error) {
+    console.warn('[generateMessagingMatrixFromPersona] JSON parse failed:', error);
     return { generated: 0 };
   }
 

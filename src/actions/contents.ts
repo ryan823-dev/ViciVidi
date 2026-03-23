@@ -368,7 +368,8 @@ export async function generateOutlineFromBrief(briefId: string): Promise<Content
       jsonStr = jsonStr.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     }
     parsed = JSON.parse(jsonStr);
-  } catch {
+  } catch (error) {
+    console.warn('[generateContentOutline] JSON parse failed, using default outline:', error);
     parsed = {
       sections: [
         { heading: "问题背景", keyPoints: ["痛点分析", "现状挑战"] },

@@ -244,7 +244,8 @@ export class HunterAdapter implements RadarAdapter {
 
       const data = await response.json();
       return data.data?.email || null;
-    } catch {
+    } catch (error) {
+      console.warn('[HunterAdapter.search] API call failed:', String(error));
       return null;
     }
   }

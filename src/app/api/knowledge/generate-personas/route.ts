@@ -67,7 +67,8 @@ export async function POST() {
       let jsonStr = aiResponse.content.trim();
       if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
       parsed = JSON.parse(jsonStr);
-    } catch {
+    } catch (error) {
+      console.error('[generate-personas] JSON parse failed:', String(error));
       return NextResponse.json({ error: "AI 返回格式异常", raw: aiResponse.content.slice(0, 200) }, { status: 500 });
     }
 

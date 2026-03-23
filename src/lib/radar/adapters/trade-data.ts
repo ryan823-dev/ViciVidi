@@ -144,8 +144,87 @@ export class TradeDataAdapter implements RadarAdapter {
 
   /**
    * 获取贸易数据
+   * 优先使用 US Census API (免费)
    */
   private async fetchTradeData(
+    searchQueries: string[],
+    query: RadarSearchQuery
+  ): Promise<TradeRecord[]> {
+    const records: TradeRecord[] = [];
+
+    // 1. 首先尝试 US Census API (美国数据，免费)
+    if (query.countries?.includes('US') || query.countries?.includes('USA')) {
+      const censusRecords = await this.fetchFromUSCensus(query);
+      records.push(...censusRecords);
+    }
+
+    // 2. 如果没有美国数据，使用 Brave Search 搜索贸易数据
+    if (records.length === 0) {
+      const searchRecords = await this.fetchFromSearch(searchQueries, query);
+      records.push(...searchRecords);
+    }
+
+    return records;
+  }
+
+  /**
+   * 从 US Census API 获取数据（免费）
+   * https://api.census.gov/data.html
+   */
+  private async fetchFromUSCensus(query: RadarSearchQuery): Promise<TradeRecord[]> {
+    const records: TradeRecord[] = [];
+    const hsCodes = query.categories || [];
+
+    for (const hsCode of hsCodes.slice(0, 3)) {
+      try {
+        // US Census International Trade Data API
+        // https://api.census.gov/data/2023/international-trade
+        const cleanHs = hsCode.replace(/\./g, '');
+        const url = `https://api.census.gov/data/2024/international-trade?get=GEN,CTY_NAME,COMM_LVL,PROD_NUM,VAL_MO&for=state:*&HS=${cleanHs}&key=`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.warn(`[TradeData] Census API error: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        // Census 返回格式: [["GEN","CTY_NAME",...], [data1], [data2], ...]
+        if (data && data.length > 1) {
+          const headers = data[0] as string[];
+          const rows = data.slice(1) as string[][];
+
+          for (const row of rows) {
+            const genIdx = headers.indexOf('GEN');
+            const ctyIdx = headers.indexOf('CTY_NAME');
+            const valIdx = headers.indexOf('VAL_MO');
+
+            if (genIdx >= 0) {
+              records.push({
+                id: `census_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                importerName: row[genIdx] || 'Unknown',
+                productDescription: `HS Code: ${hsCode}`,
+                hsCode,
+                value: parseFloat(row[valIdx] || '0') || 0,
+                destinationCountry: 'US',
+                countryOfOrigin: row[ctyIdx] || 'Unknown',
+                source: 'US Census Bureau',
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[TradeData] Census fetch error for ${hsCode}:`, error);
+      }
+    }
+
+    return records;
+  }
+
+  /**
+   * 从搜索引擎获取贸易数据
+   */
+  private async fetchFromSearch(
     searchQueries: string[],
     query: RadarSearchQuery
   ): Promise<TradeRecord[]> {
@@ -162,12 +241,11 @@ export class TradeDataAdapter implements RadarAdapter {
           cursor: query.cursor,
         });
 
-        // 过滤贸易数据相关结果
         for (const item of result.items) {
           if (this.isTradeDataSource(item.sourceUrl)) {
             records.push({
               id: `trade_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-              importerName: item.displayName, // 需要AI解析
+              importerName: item.displayName,
               productDescription: item.description || '',
               source: item.sourceUrl,
             });

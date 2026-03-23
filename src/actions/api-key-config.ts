@@ -153,7 +153,7 @@ export async function upsertApiKeyConfig(data: ApiKeyConfigData): Promise<{ succ
 /**
  * 启用/禁用API
  */
-export async function toggleApiKey(service: ApiService, isEnabled: boolean): Promise<{ success: boolean }> {
+export async function toggleApiKey(service: ApiService, isEnabled: boolean): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user || session.user.roleName !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
@@ -168,15 +168,16 @@ export async function toggleApiKey(service: ApiService, isEnabled: boolean): Pro
     revalidatePath('/admin/api-keys');
 
     return { success: true };
-  } catch {
-    return { success: false };
+  } catch (error) {
+    console.error('[toggleApiKey] Error:', error);
+    return { success: false, error: 'Failed to toggle API key' };
   }
 }
 
 /**
  * 重置使用量
  */
-export async function resetApiUsage(service: ApiService): Promise<{ success: boolean }> {
+export async function resetApiUsage(service: ApiService): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user || session.user.roleName !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
@@ -195,15 +196,16 @@ export async function resetApiUsage(service: ApiService): Promise<{ success: boo
     });
 
     return { success: true };
-  } catch {
-    return { success: false };
+  } catch (error) {
+    console.error('[resetApiUsage] Error:', error);
+    return { success: false, error: 'Failed to reset API usage' };
   }
 }
 
 /**
  * 批量重置所有使用量
  */
-export async function resetAllApiUsage(): Promise<{ success: boolean }> {
+export async function resetAllApiUsage(): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user || session.user.roleName !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
@@ -221,8 +223,9 @@ export async function resetAllApiUsage(): Promise<{ success: boolean }> {
     });
 
     return { success: true };
-  } catch {
-    return { success: false };
+  } catch (error) {
+    console.error('[resetAllApiUsage] Error:', error);
+    return { success: false, error: 'Failed to reset all API usage' };
   }
 }
 

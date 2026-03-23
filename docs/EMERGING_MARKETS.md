@@ -2,7 +2,106 @@
 
 ## 覆盖区域
 
-VertaX 获客雷达现已全面覆盖四大新兴市场，包含 **40+ 国家**，**数百个采购平台**。
+VertaX 获客雷达现已全面覆盖四大新兴市场，包含 **40+ 国家**，**数百个采购平台**，以及 **60+ 免费数据源API**。
+
+---
+
+## 🆓 免费数据源API（核心优势）
+
+### 全球贸易数据
+
+| 数据源 | 覆盖范围 | API类型 | 备注 |
+|--------|----------|---------|------|
+| **UN Comtrade** | 全球 | REST API | 联合国商品贸易数据库，最全面 |
+| **World Bank WITS** | 全球 | REST API | 世界银行国际贸易解决方案 |
+| **ITC Trade Map** | 全球 220+ 国 | Web API | 国际贸易中心，免费访问 |
+| **IMF Trade Stats** | 全球 | Data API | 国际货币基金组织统计 |
+| **US Census API** | 全球 | REST API | 美国人口普查局，免费 |
+| **USITC DataWeb** | 美国贸易 | REST API | 美国国际贸易委员会 |
+
+### 全球企业数据库
+
+| 数据源 | 覆盖范围 | 数据量 | 备注 |
+|--------|----------|--------|------|
+| **OpenCorporates** | 235+ 国家 | 2.35亿公司 | 全球最大开放企业数据库 |
+| **Global Database** | 150+ 国家 | 数百万公司 | B2B数据API |
+| **InfobelPro** | 全球 | 3.75亿企业 | 验证的B2B数据 |
+| **UK Companies House** | 英国 | 全量 | 免费查询 |
+| **Singapore ACRA** | 新加坡 | 全量 | BizFile+ 免费数据 |
+| **Australia ABR** | 澳大利亚 | 全量 | 免费企业查询 |
+
+### 区域数据源
+
+#### 🇸🇦 中东
+| 数据源 | 国家 | 描述 |
+|--------|------|------|
+| UAE Bayanat | 阿联酋 | 阿布扎比开放数据平台 |
+| Dubai Pulse | 迪拜 | 政府数据门户 |
+| Dubai Customs | 迪拜 | 海关开放数据 |
+| Saudi MC Open Data | 沙特 | 商业部开放数据 |
+| Saudi SIDF | 沙特 | 工业发展基金数据 |
+
+#### 🇹🇭 东南亚
+| 数据源 | 国家 | 描述 |
+|--------|------|------|
+| Thailand DBD | 泰国 | 商业发展部企业注册 |
+| Malaysia Gov Data | 马来西亚 | 政府开放数据门户 |
+| OpenDOSM | 马来西亚 | 统计局开放数据 |
+| Indonesia Data.go.id | 印尼 | 政府开放数据门户 |
+| Philippines BizBank | 菲律宾 | 商业数据库 |
+| Vietnam VCCI | 越南 | 工商会名录 |
+
+#### 🇿🇦 非洲
+| 数据源 | 国家 | 描述 |
+|--------|------|------|
+| South Africa CIPC | 南非 | 公司知识产权委员会 |
+| openAFRICA | 非洲 | 非洲开放数据门户 |
+| Nigeria CAC | 尼日利亚 | 企业事务委员会 |
+| Egypt GIC | 埃及 | 通用投资局 |
+| Morocco Open Data | 摩洛哥 | 政府开放数据 |
+| Kenya Registry | 肯尼亚 | 公司登记处 |
+
+#### 🇧🇷 拉丁美洲
+| 数据源 | 国家 | 描述 |
+|--------|------|------|
+| Mexico SAT RFC | 墨西哥 | 税务局纳税人登记 |
+| CANACINTRA | 墨西哥 | 工业制造商协会 |
+| Brazil CNPJ | 巴西 | 企业税务登记 |
+| Argentina AFIP | 阿根廷 | 联邦公共收入管理 |
+| Colombia RUE | 哥伦比亚 | 统一商业登记 |
+| Chile Company | 智利 | 公司登记处 |
+
+#### 🇪🇺 东欧
+| 数据源 | 国家 | 描述 |
+|--------|------|------|
+| Poland Central Register | 波兰 | 企业中央登记 |
+| Czech Business | 捷克 | 商业登记处 |
+| Romania ONRC | 罗马尼亚 | 国家商业登记 |
+| Kazakhstan Register | 哈萨克斯坦 | 国家法律实体登记 |
+| Uzbekistan Open Data | 乌兹别克斯坦 | 政府开放数据 |
+
+#### 🇦🇺 大洋洲
+| 数据源 | 国家 | 描述 |
+|--------|------|------|
+| Australia ABR | 澳大利亚 | 商业登记处 |
+| Australia ASIC | 澳大利亚 | 证券投资委员会 |
+| NZ Companies | 新西兰 | 公司办公室 |
+
+### 政府采购平台
+
+| 数据源 | 国家/区域 | 描述 |
+|--------|----------|------|
+| TED EU | 欧盟 27 国 | 欧盟政府采购公告 |
+| BOAMP | 法国 | 政府采购公告 |
+| TED EUA | 德国 | 政府采购平台 |
+| Italy ANAC | 意大利 | 反腐败局采购数据 |
+
+### 制裁与合规
+
+| 数据源 | 覆盖 | 描述 |
+|--------|------|------|
+| OpenSanctions | 全球 | 开放制裁数据库 |
+| EU Sanctions Map | 欧盟 | 制裁地图 |
 
 ---
 

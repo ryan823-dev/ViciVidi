@@ -84,7 +84,8 @@ function parseAIJson(content: string): object {
   if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
   try {
     return JSON.parse(jsonStr);
-  } catch {
+  } catch (error) {
+    console.warn('[radar-sync] JSON parse failed:', String(error));
     return { rawContent: content };
   }
 }

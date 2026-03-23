@@ -179,7 +179,8 @@ export class GenericFeedAdapter implements RadarAdapter {
       if (data.results && Array.isArray(data.results)) return data.results;
       if (data.data && Array.isArray(data.data)) return data.data;
       return [];
-    } catch {
+    } catch (error) {
+      console.warn('[GenericFeedAdapter.fetch] Feed parse failed:', String(error));
       return [];
     }
   }

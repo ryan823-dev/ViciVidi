@@ -351,7 +351,7 @@ async function appendExclusionRule(
         } as object,
       },
     });
-  } catch {
-    // 静默失败，不影响主流程
+  } catch (error) {
+    console.warn('[addToExclusionList] Failed to add company:', String(error));
   }
 }

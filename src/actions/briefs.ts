@@ -300,7 +300,8 @@ export async function generateBriefFromPersona(personaId: string): Promise<Brief
       jsonStr = jsonStr.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     }
     parsed = JSON.parse(jsonStr);
-  } catch {
+  } catch (error) {
+    console.warn('[createBriefFromPersona] JSON parse failed, using default:', error);
     parsed = {
       title: `为${persona.title}打造的专业内容`,
       targetKeywords: [`${persona.name}解决方案`],

@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
             jsonStr = jsonStr.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
           }
           parsed = JSON.parse(jsonStr);
-        } catch {
+        } catch (error) {
+          console.warn('[batch-generate] JSON parse failed:', String(error));
           parsed = {
             type: "claim",
             title: "AI 提取证据",

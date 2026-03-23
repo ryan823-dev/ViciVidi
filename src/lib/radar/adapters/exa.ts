@@ -240,7 +240,8 @@ export class ExaAdapter implements RadarAdapter {
 
       const data: ExaSearchResponse = await response.json();
       return data.results;
-    } catch {
+    } catch (error) {
+      console.warn('[ExaAdapter] API call failed:', String(error));
       return [];
     }
   }
@@ -285,7 +286,8 @@ export class ExaAdapter implements RadarAdapter {
 
       const data: ExaSearchResponse = await response.json();
       return data.results;
-    } catch {
+    } catch (error) {
+      console.warn('[ExaAdapter] API call failed:', String(error));
       return [];
     }
   }
@@ -328,7 +330,8 @@ export class ExaAdapter implements RadarAdapter {
 
       const data: ExaSearchResponse = await response.json();
       return data.results;
-    } catch {
+    } catch (error) {
+      console.warn('[ExaAdapter] API call failed:', String(error));
       return [];
     }
   }
@@ -361,7 +364,8 @@ export class ExaAdapter implements RadarAdapter {
 
       const data: ExaSearchResponse = await response.json();
       return data.results;
-    } catch {
+    } catch (error) {
+      console.warn('[ExaAdapter] API call failed:', String(error));
       return [];
     }
   }

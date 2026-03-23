@@ -16,8 +16,12 @@ interface AssetUploadZoneProps {
   compact?: boolean;
 }
 
-// 单文件最大 4GB（OSS 单次 PUT 限制为 5GB，留点余量）
-const MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024;
+// 单文件最大上传大小（可配置，默认 4GB）
+// 实际限制由后端 upload-session 决定，前端做预校验
+const MAX_FILE_SIZE = Number(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 4 * 1024 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = MAX_FILE_SIZE >= 1024 * 1024 * 1024
+  ? `${(MAX_FILE_SIZE / (1024 * 1024 * 1024)).toFixed(1)}GB`
+  : `${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB`;
 // 单批次最多 20 个文件
 const MAX_BATCH_SIZE = 20;
 // 最大并发上传数
@@ -42,7 +46,7 @@ export function AssetUploadZone({
 
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name} 超过 4GB 限制`);
+        errors.push(`${file.name} 超过 ${MAX_FILE_SIZE_LABEL} 限制`);
         continue;
       }
       validFiles.push(file);

@@ -193,8 +193,8 @@ function computeNextRunAt(scheduleRule: string): Date {
   try {
     const interval = CronExpressionParser.parse(scheduleRule);
     return interval.next().toDate();
-  } catch {
-    // 默认：6小时后
+  } catch (error) {
+    console.warn('[computeNextRunAt] Invalid cron expression:', error);
     return new Date(Date.now() + 6 * 60 * 60 * 1000);
   }
 }

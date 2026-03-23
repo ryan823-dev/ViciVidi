@@ -372,7 +372,8 @@ export class SAMGovAdapter implements RadarAdapter {
           awardee: opp.award?.awardee,
         },
       };
-    } catch {
+    } catch (error) {
+      console.warn('[SamGovAdapter.enrichOpportunity] Enrich failed:', String(error));
       return null;
     }
   }

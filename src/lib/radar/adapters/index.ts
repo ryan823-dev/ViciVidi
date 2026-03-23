@@ -22,4 +22,6 @@ export { TavilyAdapter } from './tavily';
 export { ExaAdapter } from './exa';
 export { ICPMatchingAdapter } from './icp-matching';
 export { GoogleAlertsAdapter } from './google-alerts';
+export { MultiSourceSearchAdapter, expandHSCodeKeywords, expandMultiLanguageKeywords, expandCompanyTypePatterns, generateSearchQueries } from './multi-search';
+export { BatchDiscoveryAdapter, continuousDiscovery } from './batch-discovery';
 export { DirectoryAdapter, getDirectorySourcesByCountry, getDirectorySourcesByIndustry } from './directory';

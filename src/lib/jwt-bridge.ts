@@ -121,7 +121,8 @@ export function verifyCrossPlatformJWT(token: string): CrossPlatformJWTPayload {
 export function verifyCrossPlatformJWTSafe(token: string): CrossPlatformJWTPayload | null {
   try {
     return verifyCrossPlatformJWT(token);
-  } catch {
+  } catch (error) {
+    console.debug('[verifyCrossPlatformJWTSafe] JWT verification failed:', String(error));
     return null;
   }
 }
@@ -135,7 +136,8 @@ export function verifyCrossPlatformJWTSafe(token: string): CrossPlatformJWTPaylo
 export function decodeCrossPlatformJWT(token: string): CrossPlatformJWTPayload | null {
   try {
     return jwt.decode(token) as CrossPlatformJWTPayload | null;
-  } catch {
+  } catch (error) {
+    console.debug('[decodeCrossPlatformJWT] Decode failed:', String(error));
     return null;
   }
 }

@@ -199,7 +199,8 @@ export class GoogleAlertsAdapter implements RadarAdapter {
         pubDate: new Date().toISOString(),
         source: 'Google Alerts',
       }));
-    } catch {
+    } catch (error) {
+      console.warn('[GoogleAlertsAdapter.search] Parse failed:', String(error));
       return [];
     }
   }

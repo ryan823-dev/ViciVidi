@@ -21,7 +21,8 @@ export async function createAudit(url: string) {
     if (!["http:", "https:"].includes(parsed.protocol)) {
       throw new Error("Only HTTP/HTTPS URLs are supported");
     }
-  } catch {
+  } catch (error) {
+    console.error('[createSeoAudit] URL validation error:', error);
     throw new Error("Invalid URL format");
   }
 

@@ -27,7 +27,8 @@ function isUrlSafe(url: string): boolean {
       if (a === 192 && b === 168) return false;
     }
     return true;
-  } catch {
+  } catch (error) {
+    console.warn('[isPublicIP] IP parsing error:', error);
     return false;
   }
 }
@@ -369,8 +370,8 @@ export async function runAudit(auditId: string): Promise<void> {
         })),
         language: "en",
       });
-    } catch {
-      // AI summary is optional, continue without it
+    } catch (error) {
+      console.warn('[runSeoAudit] AI summary failed:', error);
     }
 
     // Phase 5: Save results

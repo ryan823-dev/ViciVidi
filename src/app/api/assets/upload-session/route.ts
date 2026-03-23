@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateStorageKey, generatePresignedPutUrl } from "@/lib/oss";
 import { detectFileCategory } from "@/lib/utils/file-utils";
+import {
+  MAX_FILE_SIZE,
+  MAX_BATCH_SIZE,
+  getFileSizeLimitLabel,
+} from "@/lib/config/knowledge-engine";
 
 /**
  * POST /api/assets/upload-session
@@ -61,9 +66,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证文件数量限制
-    if (files.length > 20) {
+    if (files.length > MAX_BATCH_SIZE) {
       return NextResponse.json(
-        { error: "Maximum 20 files per request" },
+        { error: `Maximum ${MAX_BATCH_SIZE} files per request` },
         { status: 400 }
       );
     }
@@ -71,9 +76,9 @@ export async function POST(request: NextRequest) {
     // 为每个文件创建上传会话
     const sessions = await Promise.all(
       files.map(async (file) => {
-        // 验证文件大小 (4GB 限制)
-        if (file.size > 4 * 1024 * 1024 * 1024) {
-          throw new Error(`File ${file.name} exceeds 4GB limit`);
+        // 验证文件大小 (可配置的限制)
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error(`File ${file.name} exceeds ${getFileSizeLimitLabel()} limit`);
         }
 
         // 生成存储路径

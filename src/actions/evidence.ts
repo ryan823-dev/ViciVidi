@@ -279,7 +279,8 @@ export async function generateEvidenceFromChunk(chunkId: string): Promise<Eviden
       jsonStr = jsonStr.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     }
     parsed = JSON.parse(jsonStr);
-  } catch {
+  } catch (error) {
+    console.warn('[generateChunkEvidence] JSON parse failed, using default:', error);
     parsed = { type: "claim", title: "AI 提取证据", content: chunk.content.substring(0, 200) };
   }
 
@@ -292,32 +293,96 @@ export async function generateEvidenceFromChunk(chunkId: string): Promise<Eviden
   });
 }
 
-// ==================== 批量从 Asset 生成证据 ====================
+// ==================== 批量从 Asset 生成证据 (优化版) ====================
 
-export async function batchGenerateEvidences(assetId: string): Promise<{ generated: number; errors: number }> {
+/** 并发批量处理配置 */
+const BATCH_CONCURRENCY = 3;      // 同时处理的任务数
+const BATCH_DELAY_MS = 1500;       // 每批次间隔（避免 API 限流）
+const MAX_CHUNKS_PER_BATCH = 20;   // 单次最多处理 chunks 数
+
+interface BatchProgress {
+  total: number;
+  processed: number;
+  generated: number;
+  errors: number;
+  chunkErrors: Array<{ chunkId: string; error: string }>;
+}
+
+/**
+ * 带进度回调的批量生成证据
+ * @param assetId 资产ID
+ * @param onProgress 进度回调函数
+ */
+export async function batchGenerateEvidencesWithProgress(
+  assetId: string,
+  onProgress?: (progress: BatchProgress) => void
+): Promise<BatchProgress> {
   const session = await getSession();
 
   const chunks = await db.assetChunk.findMany({
     where: { assetId, tenantId: session.user.tenantId },
     orderBy: { chunkIndex: "asc" },
-    take: 20, // 最多处理 20 个 chunks
+    take: MAX_CHUNKS_PER_BATCH,
   });
 
-  if (chunks.length === 0) throw new Error("该资产没有文本片段，请先处理资产");
+  if (chunks.length === 0) {
+    throw new Error("该资产没有文本片段，请先处理资产");
+  }
 
-  let generated = 0;
-  let errors = 0;
+  const result: BatchProgress = {
+    total: chunks.length,
+    processed: 0,
+    generated: 0,
+    errors: 0,
+    chunkErrors: [],
+  };
 
-  // 串行处理避免 API 压力
-  for (const chunk of chunks) {
-    try {
-      await generateEvidenceFromChunk(chunk.id);
-      generated++;
-    } catch {
-      errors++;
+  // 分批并发处理
+  for (let i = 0; i < chunks.length; i += BATCH_CONCURRENCY) {
+    const batch = chunks.slice(i, i + BATCH_CONCURRENCY);
+
+    // 并发处理当前批次
+    const promises = batch.map(async (chunk) => {
+      try {
+        await generateEvidenceFromChunk(chunk.id);
+        return { success: true as const, chunkId: chunk.id, error: '' };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[batchGenerateEvidence] Failed for chunk ${chunk.id}:`, errorMsg);
+        return { success: false as const, chunkId: chunk.id, error: errorMsg };
+      }
+    });
+
+    const results = await Promise.all(promises);
+
+    // 汇总结果
+    for (const r of results) {
+      result.processed++;
+      if (r.success) {
+        result.generated++;
+      } else {
+        result.errors++;
+        result.chunkErrors.push({ chunkId: r.chunkId, error: r.error as string });
+      }
+    }
+
+    // 通知进度
+    onProgress?.(result);
+
+    // 批次间延迟（避免 API 限流）
+    if (i + BATCH_CONCURRENCY < chunks.length) {
+      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
   }
 
   revalidatePath("/zh-CN/knowledge");
-  return { generated, errors };
+  return result;
+}
+
+/**
+ * 批量从 Asset 生成证据（保持向后兼容）
+ */
+export async function batchGenerateEvidences(assetId: string): Promise<{ generated: number; errors: number }> {
+  const result = await batchGenerateEvidencesWithProgress(assetId);
+  return { generated: result.generated, errors: result.errors };
 }

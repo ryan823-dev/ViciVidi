@@ -443,7 +443,8 @@ export async function extractWhatsAppFromWebsite(url: string): Promise<string[]>
     }
 
     return [...new Set(whatsappNumbers)];
-  } catch {
+  } catch (error) {
+    console.warn('[extractWhatsappNumbers] Extract failed:', String(error));
     return [];
   }
 }

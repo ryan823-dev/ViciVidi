@@ -268,7 +268,8 @@ function validateFormats(candidate: NormalizedCandidate): { issues: ValidationIs
   if (candidate.sourceUrl) {
     try {
       new URL(candidate.sourceUrl);
-    } catch {
+    } catch (error) {
+      console.warn('[validateCandidate] Invalid sourceUrl:', error);
       issues.push({ field: 'sourceUrl', severity: 'error', message: '无效的URL格式' });
       factor *= 0.8;
     }
@@ -277,7 +278,8 @@ function validateFormats(candidate: NormalizedCandidate): { issues: ValidationIs
   if (candidate.website) {
     try {
       new URL(candidate.website);
-    } catch {
+    } catch (error) {
+      console.warn('[validateCandidate] Invalid website URL:', error);
       issues.push({ field: 'website', severity: 'warning', message: '无效的网站URL格式' });
       factor *= 0.95;
     }

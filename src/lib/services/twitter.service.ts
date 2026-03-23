@@ -204,7 +204,8 @@ export async function refreshTokenIfNeeded(account: {
       refreshToken: result.refreshToken,
       expiresAt,
     };
-  } catch {
+  } catch (error) {
+    console.warn('[refreshTwitterToken] Token refresh failed:', error);
     return null;
   }
 }

@@ -355,7 +355,8 @@ export function checkInternalLinks(
   let host: string;
   try {
     host = new URL(pageUrl).hostname;
-  } catch {
+  } catch (error) {
+    console.warn('[checkInternalLinks] URL parse error:', error);
     host = "";
   }
 
@@ -477,8 +478,8 @@ function extractJsonLd($: CheerioAPI): Record<string, unknown>[] {
       } else {
         schemas.push(data as Record<string, unknown>);
       }
-    } catch {
-      // ignore parse errors
+    } catch (error) {
+      console.debug('[extractJsonLd] JSON parse error:', error);
     }
   });
   return schemas;

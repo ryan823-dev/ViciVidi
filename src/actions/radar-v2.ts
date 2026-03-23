@@ -6,6 +6,12 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { requireDecider } from '@/lib/permissions';
+import {
+  validateRadarQuery,
+  validateCandidateCreate,
+  validateProfileCreate,
+  ValidationError,
+} from '@/lib/validation';
 import type {
   Prisma,
   ChannelType,
@@ -211,14 +217,22 @@ export async function createDiscoveryTaskV2(input: {
     specVersionId?: string;
   };
 }): Promise<RadarTask> {
+  // 验证输入
+  if (!input.sourceId) {
+    throw new ValidationError('sourceId is required');
+  }
+
+  // 验证查询配置
+  const validatedQuery = validateRadarQuery(input.queryConfig);
+
   const session = await auth();
   if (!session?.user?.tenantId || !session.user.id) throw new Error('Unauthorized');
-  
+
   return createRadarTask({
     tenantId: session.user.tenantId,
     sourceId: input.sourceId,
     name: input.name,
-    queryConfig: input.queryConfig,
+    queryConfig: validatedQuery,
     targetingRef: input.targetingRef,
     triggeredBy: session.user.id,
   });
@@ -633,12 +647,21 @@ export async function importCandidatesBatchV2(
   candidateIds: string[],
   targetType: 'company' | 'opportunity'
 ): Promise<{ imported: number; failed: number }> {
+  // 验证输入
+  if (!candidateIds || candidateIds.length === 0) {
+    throw new ValidationError('candidateIds is required');
+  }
+  if (candidateIds.length > 100) {
+    throw new ValidationError('Maximum 100 candidates per batch');
+  }
+
   const session = await auth();
   if (!session?.user?.tenantId) throw new Error('Unauthorized');
-  
+
   let imported = 0;
   let failed = 0;
-  
+  const errors: string[] = [];
+
   for (const id of candidateIds) {
     try {
       if (targetType === 'company') {
@@ -647,11 +670,14 @@ export async function importCandidatesBatchV2(
         await importCandidateToOpportunityV2(id);
       }
       imported++;
-    } catch {
+    } catch (error) {
       failed++;
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[importCandidatesBatchV2] Failed to import ${id}:`, msg);
+      errors.push(`${id}: ${msg}`);
     }
   }
-  
+
   return { imported, failed };
 }
 
@@ -1021,8 +1047,8 @@ export async function createRadarSearchProfile(input: CreateRadarSearchProfileIn
       const { CronExpressionParser } = await import('cron-parser');
       const interval = CronExpressionParser.parse(input.scheduleRule);
       nextRunAt = interval.next().toDate();
-    } catch {
-      // 默认 1 小时后
+    } catch (error) {
+      console.warn('[createRadarSearchProfile] Invalid cron expression, using default:', error);
       nextRunAt = new Date(Date.now() + 60 * 60 * 1000);
     }
   }
@@ -1116,7 +1142,8 @@ export async function updateRadarSearchProfile(
       const { CronExpressionParser } = await import('cron-parser');
       const interval = CronExpressionParser.parse(input.scheduleRule);
       data.nextRunAt = interval.next().toDate();
-    } catch {
+    } catch (error) {
+      console.warn('[updateRadarSearchProfile] Invalid cron expression, using default:', error);
       data.nextRunAt = new Date(Date.now() + 60 * 60 * 1000);
     }
   }
@@ -1151,7 +1178,8 @@ export async function toggleRadarSearchProfileActive(profileId: string): Promise
       const { CronExpressionParser } = await import('cron-parser');
       const interval = CronExpressionParser.parse(existing.scheduleRule);
       nextRunAt = interval.next().toDate();
-    } catch {
+    } catch (error) {
+      console.warn('[toggleRadarProfile] Invalid cron expression, using default:', error);
       nextRunAt = new Date(Date.now() + 60 * 60 * 1000);
     }
   }

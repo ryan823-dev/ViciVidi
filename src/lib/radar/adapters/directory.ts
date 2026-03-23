@@ -20,13 +20,18 @@ import type {
   AdapterConfig,
 } from './types';
 import { chatCompletion } from '@/lib/ai-client';
+import {
+  DIRECTORY_SOURCES,
+  getSourcesByCountry,
+  getSourcesByType,
+} from './directory-sources';
 
 // ==================== 类型定义 ====================
 
 export interface DirectorySource {
   id: string;
   name: string;
-  type: 'association' | 'government' | 'b2b_platform' | 'trade_show' | 'custom';
+  type: 'association' | 'government' | 'b2b_platform' | 'trade_show' | 'custom' | 'trade_data';
   url: string;
   country: string;
   industry?: string;
@@ -39,101 +44,26 @@ export interface DirectorySearchParams {
   country?: string;
 }
 
-// 预配置的权威名录数据源
-export const DIRECTORY_SOURCES: DirectorySource[] = [
-  // 美国
-  {
-    id: 'usa-sba',
-    name: 'US SBA Business Directory',
-    type: 'government',
-    url: 'https://www.sba.gov/business-guide/launch-your-business/find-business-name',
-    country: 'US',
-    description: '美国小企业管理局企业名录',
-  },
-  {
-    id: 'usa-thomasnet',
-    name: 'ThomasNet',
-    type: 'b2b_platform',
-    url: 'https://www.thomasnet.com',
-    country: 'US',
-    industry: 'Manufacturing',
-    description: '北美工业制造商目录',
-  },
-  // 德国
-  {
-    id: 'de-hk2',
-    name: 'Germany Trade & Invest',
-    type: 'association',
-    url: 'https://www.gtai.com/en',
-    country: 'DE',
-    description: '德国贸易投资名录',
-  },
-  {
-    id: 'de-vdma',
-    name: 'VDMA - Mechanical Engineering',
-    type: 'association',
-    url: 'https://www.vdma.org',
-    country: 'DE',
-    industry: 'Machinery',
-    description: '德国机械工程协会',
-  },
-  // 英国
-  {
-    id: 'uk-eca',
-    name: 'ECA Directory',
-    type: 'association',
-    url: 'https://www.eca.co.uk',
-    country: 'UK',
-    industry: 'Electrical',
-    description: '英国电气承包商协会',
-  },
-  // 日本
-  {
-    id: 'jp-jamea',
-    name: 'JAMEA Directory',
-    type: 'association',
-    url: 'https://www.jamea.or.jp',
-    country: 'JP',
-    industry: 'Machinery',
-    description: '日本工作机械工业会',
-  },
-  // 中国
-  {
-    id: 'cn-ccpit',
-    name: 'CCPIT',
-    type: 'association',
-    url: 'https://www.ccpit.org',
-    country: 'CN',
-    description: '中国国际贸易促进委员会',
-  },
-  // 印度
-  {
-    id: 'in-fieo',
-    name: 'FIEO',
-    type: 'association',
-    url: 'https://www.fieo.com',
-    country: 'IN',
-    description: '印度出口组织联合会',
-  },
-  // 墨西哥
-  {
-    id: 'mx-canacintra',
-    name: 'CANACINTRA',
-    type: 'association',
-    url: 'https://www.canacintra.org.mx',
-    country: 'MX',
-    description: '墨西哥国家工业制造商协会',
-  },
-  // 越南
-  {
-    id: 'vn-vnchamber',
-    name: 'VCCI',
-    type: 'association',
-    url: 'https://www.vcci.com.vn',
-    country: 'VN',
-    description: '越南工商会',
-  },
-];
+// 重导出数据源配置和辅助函数
+export {
+  DIRECTORY_SOURCES,
+  getSourcesByCountry,
+  getSourcesByType,
+};
+
+// ==================== 区域类型 ====================
+
+export type Region =
+  | 'NORTH_AMERICA'
+  | 'SOUTH_AMERICA'
+  | 'EUROPE'
+  | 'MIDDLE_EAST'
+  | 'AFRICA'
+  | 'SOUTH_ASIA'
+  | 'SOUTHEAST_ASIA'
+  | 'EAST_ASIA'
+  | 'OCEANIA'
+  | 'GLOBAL';
 
 // ==================== 行业名录适配器 ====================
 
@@ -370,16 +300,16 @@ export class DirectoryAdapter implements RadarAdapter {
           },
           description: info.summary || entry.description,
           rawData: {
-            source: 'directory',
+            source: entry.source.id,
             sourceName: entry.source.name,
             sourceType: entry.source.type,
-            products: info.products || [],
           },
-        };
+        } as NormalizedCandidate;
       });
     } catch (error) {
       console.error('[Directory] Parse error:', error);
-      return entries.map(entry => ({
+      // 降级处理：直接返回基本信息
+      return entries.slice(0, 10).map(entry => ({
         externalId: `dir_${Date.now()}_${this.hashString(entry.companyName)}`,
         sourceUrl: entry.url || entry.source.url,
         displayName: entry.companyName,
@@ -409,13 +339,75 @@ export class DirectoryAdapter implements RadarAdapter {
   }
 }
 
-// ==================== 辅助函数 ====================
+// ==================== 区域映射 ====================
+
+/**
+ * 区域到国家映射
+ */
+const REGION_COUNTRIES: Record<Region, string[]> = {
+  'NORTH_AMERICA': ['US', 'CA', 'MX'],
+  'SOUTH_AMERICA': ['BR', 'AR', 'CL', 'CO', 'PE'],
+  'EUROPE': ['DE', 'FR', 'UK', 'IT', 'ES', 'PL', 'CZ', 'RO'],
+  'MIDDLE_EAST': ['AE', 'SA', 'QA', 'KW', 'IL'],
+  'AFRICA': ['ZA', 'NG', 'EG', 'KE', 'MA'],
+  'SOUTH_ASIA': ['IN', 'PK', 'BD', 'LK'],
+  'SOUTHEAST_ASIA': ['SG', 'MY', 'TH', 'VN', 'ID', 'PH'],
+  'EAST_ASIA': ['CN', 'JP', 'KR'],
+  'OCEANIA': ['AU', 'NZ'],
+  'GLOBAL': ['GLOBAL'],
+};
+
+/**
+ * 根据关键词推断区域
+ */
+export function inferRegionFromKeyword(keyword: string): Region[] {
+  const lowerKeyword = keyword.toLowerCase();
+  const matches: Region[] = [];
+
+  const regionKeywords: Record<Region, string[]> = {
+    'NORTH_AMERICA': ['北美', 'north america', 'usa', 'us', 'canada', 'mexico', '美国', '加拿大', '墨西哥'],
+    'SOUTH_AMERICA': ['南美', 'south america', 'brazil', 'argentina', '巴西', '阿根廷'],
+    'EUROPE': ['欧洲', 'europe', 'eu', 'germany', 'france', 'uk', '德国', '法国', '英国'],
+    'MIDDLE_EAST': ['中东', 'middle east', 'uae', 'saudi', 'dubai', '阿联酋', '沙特', '迪拜'],
+    'AFRICA': ['非洲', 'africa', 'south africa', 'nigeria', 'egypt', '南非', '尼日利亚', '埃及'],
+    'SOUTH_ASIA': ['南亚', 'south asia', 'india', '印度', '巴基斯坦'],
+    'SOUTHEAST_ASIA': ['东南亚', 'southeast asia', 'thailand', 'vietnam', 'indonesia', '泰国', '越南', '印尼'],
+    'EAST_ASIA': ['东亚', 'east asia', 'china', 'japan', 'korea', '中国', '日本', '韩国'],
+    'OCEANIA': ['大洋洲', 'oceania', 'australia', 'nz', '澳洲', '澳大利亚', '新西兰'],
+    'GLOBAL': ['全球', 'global', 'world', 'worldwide', '世界'],
+  };
+
+  for (const [region, keywords] of Object.entries(regionKeywords)) {
+    if (keywords.some(k => lowerKeyword.includes(k))) {
+      matches.push(region as Region);
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * 获取区域内的国家列表
+ */
+export function getCountriesByRegion(region: Region): string[] {
+  return REGION_COUNTRIES[region] || [];
+}
 
 /**
  * 获取特定国家的行业名录
  */
 export function getDirectorySourcesByCountry(country: string): DirectorySource[] {
-  return DIRECTORY_SOURCES.filter(s => s.country === country);
+  return DIRECTORY_SOURCES.filter(s => s.country === country.toUpperCase());
+}
+
+/**
+ * 获取特定区域的行业名录
+ */
+export function getDirectorySourcesByRegion(region: Region): DirectorySource[] {
+  const countries = getCountriesByRegion(region);
+  return DIRECTORY_SOURCES.filter(s =>
+    countries.includes(s.country) || s.country === 'GLOBAL'
+  );
 }
 
 /**
@@ -435,3 +427,5 @@ export function createDirectoryAdapter(customSources: DirectorySource[]): Direct
     customSources: customSources as unknown as Record<string, unknown>,
   } as AdapterConfig);
 }
+
+export default DirectoryAdapter;

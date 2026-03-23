@@ -217,7 +217,8 @@ export class PeopleDataLabsAdapter implements RadarAdapter {
 
       const data: PDLSearchResponse = await response.json();
       return data.data.map(person => this.normalizePerson(person));
-    } catch {
+    } catch (error) {
+      console.warn('[PDLAdapter.search] Search failed:', String(error));
       return [];
     }
   }
@@ -253,7 +254,8 @@ export class PeopleDataLabsAdapter implements RadarAdapter {
       }
 
       return null;
-    } catch {
+    } catch (error) {
+      console.warn('[PDLAdapter.enrichByEmail] Enrich failed:', String(error));
       return null;
     }
   }
@@ -299,7 +301,8 @@ export class PeopleDataLabsAdapter implements RadarAdapter {
 
       const data = await response.json();
       return data.data || [];
-    } catch {
+    } catch (error) {
+      console.warn('[PDLAdapter.searchCompany] Company search failed:', String(error));
       return [];
     }
   }

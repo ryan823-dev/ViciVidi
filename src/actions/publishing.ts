@@ -255,8 +255,9 @@ export async function confirmPushRecord(
       },
     });
     return { success: true };
-  } catch {
-    return { success: false, error: "确认失败" };
+  } catch (error) {
+    console.error('[confirmPush] Error:', error);
+    return { success: false, error: '确认失败' };
   }
 }
 

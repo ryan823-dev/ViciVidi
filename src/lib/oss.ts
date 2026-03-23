@@ -189,7 +189,8 @@ export async function objectExists(storageKey: string): Promise<boolean> {
   try {
     await client.head(storageKey);
     return true;
-  } catch {
+  } catch (error) {
+    console.debug('[objectExists] OSS head failed:', String(error));
     return false;
   }
 }
@@ -212,7 +213,8 @@ export async function getObjectInfo(storageKey: string): Promise<{
       contentType: headers["content-type"],
       lastModified: new Date(headers["last-modified"]),
     };
-  } catch {
+  } catch (error) {
+    console.debug('[getObjectInfo] OSS head failed:', String(error));
     return null;
   }
 }

@@ -217,8 +217,8 @@ async function getTopicClusterStats(tenantId: string): Promise<TopicClusterStats
     const clusters = content?.topicCluster?.clusters || [];
     clustersCount = clusters.length;
     contentMapCount = clusters.reduce((sum, c) => sum + (c.contentMap?.length || 0), 0);
-  } catch {
-    // ignore parsing errors
+  } catch (error) {
+    console.debug('[getTopicClusterStats] Parse error:', String(error));
   }
 
   return {

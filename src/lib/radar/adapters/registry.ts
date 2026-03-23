@@ -24,6 +24,10 @@ import { HunterAdapter } from './hunter';
 import { PeopleDataLabsAdapter } from './pdl';
 import { TavilyAdapter } from './tavily';
 import { ExaAdapter } from './exa';
+import { ICPMatchingAdapter } from './icp-matching';
+import { GoogleAlertsAdapter } from './google-alerts';
+import { MultiSourceSearchAdapter } from './multi-search';
+import { BatchDiscoveryAdapter } from './batch-discovery';
 
 // ==================== 数据源可靠性定义 ====================
 
@@ -762,6 +766,158 @@ export function ensureAdaptersInitialized(): void {
     (config) => new ExaAdapter(config)
   );
 
+  // 注册 ICP 匹配适配器
+  registerAdapter(
+    {
+      code: 'icp_matching',
+      name: 'ICP智能匹配',
+      channelType: 'DIRECTORY',
+      adapterType: 'AI_SEARCH',
+      description: '基于AI的ICP画像匹配，自动分析目标客户特征并搜索匹配企业',
+      features: {
+        supportsKeywordSearch: true,
+        supportsCategoryFilter: true,
+        supportsDateFilter: false,
+        supportsRegionFilter: true,
+        supportsPagination: false,
+        supportsDetails: true,
+        maxResultsPerQuery: 50,
+        rateLimit: { requests: 10, windowMs: 60000 },
+      },
+      defaultConfig: {
+        timeout: 60000,
+      },
+      storagePolicy: 'TTL_CACHE',
+      ttlDays: 30,
+      attributionRequired: false,
+      isOfficial: false,
+      reliability: {
+        dataType: 'AI_INFERRED',
+        qualityLevel: 'UNSTABLE',
+        requiresAuth: true,
+        authMethod: 'AI API Key',
+        updateFrequency: 'REAL_TIME',
+        coverageNote: '全球范围，取决于ICP描述',
+        limitations: ['AI可能产生幻觉', '需要验证匹配结果'],
+      },
+    },
+    (config) => new ICPMatchingAdapter(config)
+  );
+
+  // 注册 Google Alerts 适配器
+  registerAdapter(
+    {
+      code: 'google_alerts',
+      name: 'Google Alerts监控',
+      channelType: 'DIRECTORY',
+      adapterType: 'AI_SEARCH',
+      description: '监控竞争对手和行业动态，发现新进入市场的企业',
+      features: {
+        supportsKeywordSearch: true,
+        supportsCategoryFilter: false,
+        supportsDateFilter: true,
+        supportsRegionFilter: true,
+        supportsPagination: false,
+        supportsDetails: false,
+        maxResultsPerQuery: 20,
+        rateLimit: { requests: 5, windowMs: 60000 },
+      },
+      defaultConfig: {
+        timeout: 30000,
+      },
+      storagePolicy: 'TTL_CACHE',
+      ttlDays: 7,
+      attributionRequired: false,
+      isOfficial: false,
+      reliability: {
+        dataType: 'AI_INFERRED',
+        qualityLevel: 'UNSTABLE',
+        requiresAuth: true,
+        authMethod: '搜索引擎API Key',
+        updateFrequency: 'REAL_TIME',
+        coverageNote: '全球范围',
+        limitations: ['搜索结果需要人工验证'],
+      },
+    },
+    (config) => new GoogleAlertsAdapter(config)
+  );
+
+  // 注册多源聚合搜索适配器
+  registerAdapter(
+    {
+      code: 'multi_search',
+      name: '多源聚合搜索',
+      channelType: 'DIRECTORY',
+      adapterType: 'AI_SEARCH',
+      description: '同时调用多个搜索引擎（Brave + Exa + Tavily + Google Places），最大化发现覆盖面，去重后返回高质量结果',
+      features: {
+        supportsKeywordSearch: true,
+        supportsCategoryFilter: true,
+        supportsDateFilter: false,
+        supportsRegionFilter: true,
+        supportsPagination: true,
+        supportsDetails: false,
+        maxResultsPerQuery: 200,
+        rateLimit: { requests: 5, windowMs: 60000 },
+      },
+      defaultConfig: {
+        timeout: 60000,
+      },
+      storagePolicy: 'TTL_CACHE',
+      ttlDays: 7,
+      attributionRequired: false,
+      isOfficial: false,
+      reliability: {
+        dataType: 'AI_INFERRED',
+        qualityLevel: 'MEDIUM',
+        requiresAuth: true,
+        authMethod: '多个搜索API Key',
+        updateFrequency: 'REAL_TIME',
+        coverageNote: '全球范围，通过多源聚合扩大覆盖',
+        limitations: ['需要配置多个API Key', '结果需要人工验证'],
+      },
+    },
+    (config) => new MultiSourceSearchAdapter(config)
+  );
+
+  // 注册批量发现适配器
+  registerAdapter(
+    {
+      code: 'batch_discovery',
+      name: '批量智能发现',
+      channelType: 'DIRECTORY',
+      adapterType: 'AI_SEARCH',
+      description: '跨所有数据源的大规模并行发现，自动扩展多语言关键词和区域覆盖，支持无限滚动发现模式',
+      features: {
+        supportsKeywordSearch: true,
+        supportsCategoryFilter: true,
+        supportsDateFilter: false,
+        supportsRegionFilter: true,
+        supportsPagination: true,
+        supportsDetails: false,
+        maxResultsPerQuery: 500,
+        rateLimit: { requests: 3, windowMs: 60000 },
+      },
+      defaultConfig: {
+        timeout: 120000,
+      },
+      storagePolicy: 'TTL_CACHE',
+      ttlDays: 7,
+      attributionRequired: false,
+      isOfficial: false,
+      reliability: {
+        dataType: 'AI_INFERRED',
+        qualityLevel: 'MEDIUM',
+        requiresAuth: true,
+        authMethod: '多个搜索API Key',
+        updateFrequency: 'REAL_TIME',
+        coverageNote: '全球范围，跨所有适配器',
+        limitations: ['执行时间较长', '结果需要人工验证'],
+      },
+    },
+    (config) => new BatchDiscoveryAdapter(config)
+  );
+
   initialized = true;
 }
 
@@ -787,6 +943,10 @@ export const ADAPTER_CODES = {
   // AI 搜索
   TAVILY: 'tavily',
   EXA: 'exa',
+  ICP_MATCHING: 'icp_matching',
+  GOOGLE_ALERTS: 'google_alerts',
+  MULTI_SEARCH: 'multi_search',
+  BATCH_DISCOVERY: 'batch_discovery',
   // 后续扩展
   CSV_IMPORT: 'csv_import',
 } as const;
