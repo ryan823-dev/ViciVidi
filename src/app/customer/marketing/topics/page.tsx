@@ -716,7 +716,7 @@ export default function TopicClustersPage() {
                                   </button>
                                 ) : (
                                   <Link
-                                    href="/c/marketing/strategy"
+                                    href="/customer/marketing/strategy"
                                     className="shrink-0 px-3 py-1.5 text-xs text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg transition-colors"
                                   >
                                     生成内容

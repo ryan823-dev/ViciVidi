@@ -166,7 +166,7 @@ export default function RadarTasksPage() {
         <div className="relative flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
             <Link 
-              href="/c/radar" 
+              href="/customer/radar" 
               className="p-2 text-slate-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-white/5"
             >
               <ArrowLeft size={20} />
@@ -396,7 +396,7 @@ export default function RadarTasksPage() {
                     )}
                     {task.status === 'COMPLETED' && (
                       <Link
-                        href="/c/radar/candidates"
+                        href="/customer/radar/candidates"
                         className="flex items-center gap-1.5 px-3 py-1.5 text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg text-xs font-medium transition-colors"
                       >
                         查看结果

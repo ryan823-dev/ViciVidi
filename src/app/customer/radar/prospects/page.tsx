@@ -311,7 +311,7 @@ export default function RadarProspectsPage() {
                 <p className="text-slate-300">暂无线索数据</p>
                 <p className="text-xs text-slate-500 mt-2">前往「候选池」导入线索</p>
                 <Link 
-                  href="/c/radar/candidates"
+                  href="/customer/radar/candidates"
                   className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-[#D4AF37] text-[#0B1220] rounded-xl text-sm font-medium hover:bg-[#C5A030] transition-colors"
                 >
                   前往候选池

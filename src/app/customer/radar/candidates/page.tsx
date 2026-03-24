@@ -570,7 +570,7 @@ export default function RadarCandidatesPage() {
                       还没有发现任何候选，请先创建发现任务
                     </p>
                     <Link 
-                      href="/c/radar/tasks"
+                      href="/customer/radar/tasks"
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-colors"
                       style={{background: '#D4AF37', color: '#0B1220', boxShadow: '0 4px 16px -2px rgba(212,175,55,0.35)'}}
                     >

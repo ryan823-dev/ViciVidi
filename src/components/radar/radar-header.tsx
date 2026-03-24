@@ -384,7 +384,7 @@ export function SecretaryPanel({ counts, errors }: SecretaryPanelProps) {
       type: 'action',
       title: `${counts.pendingReviewCount} 个候选待审核`,
       description: '新发现的潜在客户等待您的分层判断',
-      href: '/c/radar/candidates?status=NEW',
+      href: '/customer/radar/candidates?status=NEW',
     });
   }
 
@@ -394,7 +394,7 @@ export function SecretaryPanel({ counts, errors }: SecretaryPanelProps) {
       type: 'info',
       title: `${counts.candidatesQualifiedAB7d} 个高质量候选`,
       description: '过去7天已识别的 A/B 级潜在客户',
-      href: '/c/radar/candidates?tier=A,B',
+      href: '/customer/radar/candidates?tier=A,B',
     });
   }
 
@@ -404,7 +404,7 @@ export function SecretaryPanel({ counts, errors }: SecretaryPanelProps) {
       type: 'warning',
       title: '画像需要更新',
       description: '买家画像已超过30天未同步',
-      href: '/c/knowledge/profiles',
+      href: '/customer/knowledge/profiles',
     });
   }
 

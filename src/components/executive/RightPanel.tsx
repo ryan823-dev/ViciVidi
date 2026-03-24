@@ -155,7 +155,7 @@ export function RightPanel({
             <ApprovalCard key={item.id} item={item} />
           ))}
           {pendingApprovals.length > 5 && (
-            <Link href="/c/approvals" className="text-exec-gold text-xs hover:underline block text-center py-2">
+            <Link href="/customer/approvals" className="text-exec-gold text-xs hover:underline block text-center py-2">
               查看全部 {pendingApprovals.length} 项
             </Link>
           )}

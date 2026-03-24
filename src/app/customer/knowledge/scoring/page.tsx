@@ -30,7 +30,7 @@ export default function ScoringProfilePage() {
         <div className="max-w-5xl mx-auto px-6 py-8">
           <div className="flex items-center gap-4 mb-4">
             <Link
-              href="/c/knowledge/profiles"
+              href="/customer/knowledge/profiles"
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />

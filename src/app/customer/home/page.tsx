@@ -348,26 +348,26 @@ export default function CEOCockpitPage() {
                   label="知识完整度" 
                   value={`${stats?.knowledgeCompleteness || 78}%`}
                   status="progress"
-                  href="/c/knowledge/assets"
+                  href="/customer/knowledge/assets"
                 />
                 <SecretaryRow 
                   label="内容库存" 
                   value="1.2GB"
                   status="progress"
-                  href="/c/knowledge/assets"
+                  href="/customer/knowledge/assets"
                 />
                 <SecretaryRow 
                   label="待您确认" 
                   value={`${actions.length} 项`}
                   status={actions.length > 0 ? 'attention' : 'progress'}
-                  href="/c/hub"
+                  href="/customer/hub"
                 />
                 <SecretaryRow 
                   label="VOC 合规" 
                   value="A+"
                   subtext="行业领先"
                   status="progress"
-                  href="/c/radar"
+                  href="/customer/radar"
                   isLast
                 />
               </div>

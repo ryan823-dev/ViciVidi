@@ -427,7 +427,7 @@ export default function TargetingSpecPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link 
-              href="/c/radar" 
+              href="/customer/radar" 
               className="p-2 text-slate-400 hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-50"
             >
               <ArrowLeft size={20} />
@@ -556,7 +556,7 @@ export default function TargetingSpecPage() {
               请先在知识引擎完善企业认知，然后点击「同步到获客雷达」自动生成
             </p>
             <Link
-              href="/c/knowledge/company"
+              href="/customer/knowledge/company"
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#0B1B2B] text-emerald-400 rounded-xl text-sm font-medium hover:bg-[#10263B] transition-colors"
             >
               前往知识引擎

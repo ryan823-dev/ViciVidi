@@ -110,7 +110,7 @@ export default function ContentsPage() {
       return;
     }
     // Navigate to editor with briefId
-    window.location.href = `/c/marketing/contents/new?briefId=${selectedBriefId}`;
+    window.location.href = `/customer/marketing/contents/new?briefId=${selectedBriefId}`;
   };
 
   return (
@@ -240,7 +240,7 @@ export default function ContentsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <Link
-                          href={`/c/marketing/contents/${content.id}`}
+                          href={`/customer/marketing/contents/${content.id}`}
                           className="text-base font-semibold text-[#0B1B2B] group-hover:text-[#D4AF37] transition-colors"
                         >
                           {content.title}
@@ -277,7 +277,7 @@ export default function ContentsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link href={`/c/marketing/contents/${content.id}`}>
+                      <Link href={`/customer/marketing/contents/${content.id}`}>
                         <Button variant="ghost" size="sm" className="text-slate-500 hover:text-[#D4AF37]">
                           <Edit className="w-4 h-4 mr-1" />
                           编辑

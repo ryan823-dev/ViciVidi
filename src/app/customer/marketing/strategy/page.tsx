@@ -297,7 +297,7 @@ export default function MarketingStrategyPage() {
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              href="/c/marketing"
+              href="/customer/marketing"
               className="p-2 text-slate-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-white/10"
             >
               <ArrowLeft size={20} />
@@ -359,7 +359,7 @@ export default function MarketingStrategyPage() {
             请先在知识引擎完善企业认知，然后点击「同步到营销系统」自动生成
           </p>
           <Link
-            href="/c/knowledge/company"
+            href="/customer/knowledge/company"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
             style={{ background: '#D4AF37', color: '#0B1220', boxShadow: '0 4px 16px -2px rgba(212,175,55,0.35)' }}
           >
@@ -444,7 +444,7 @@ export default function MarketingStrategyPage() {
                     )}
                   </span>
                   <Link
-                    href="/c/marketing/briefs"
+                    href="/customer/marketing/briefs"
                     className="ml-auto text-[#D4AF37] hover:underline flex items-center gap-1"
                   >
                     查看 Briefs

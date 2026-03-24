@@ -57,7 +57,7 @@ export default function RegisterPage() {
       if (result?.error) {
         router.push("/zh-CN/login");
       } else {
-        router.push("/zh-CN/c/home");
+        router.push("/zh-CN/customer/home");
         router.refresh();
       }
     } catch {

@@ -38,10 +38,10 @@ import { RadarHeader, StatCard, SecretaryPanel, RadarEmptyGuide } from '@/compon
 
 // 子模块快捷入口
 const radarModules = [
-  { label: '发现任务', href: '/c/radar/tasks', icon: Search, description: '创建和管理发现任务', badge: null },
-  { label: '候选池', href: '/c/radar/candidates', icon: Users, description: '审核和分层候选', badge: 'pendingReviewCount' },
-  { label: '线索库', href: '/c/radar/prospects', icon: Building2, description: '管理已导入线索', badge: null },
-  { label: '机会追踪', href: '/c/radar/opportunities', icon: Target, description: '招标机会管理', badge: null },
+  { label: '发现任务', href: '/customer/radar/tasks', icon: Search, description: '创建和管理发现任务', badge: null },
+  { label: '候选池', href: '/customer/radar/candidates', icon: Users, description: '审核和分层候选', badge: 'pendingReviewCount' },
+  { label: '线索库', href: '/customer/radar/prospects', icon: Building2, description: '管理已导入线索', badge: null },
+  { label: '机会追踪', href: '/customer/radar/opportunities', icon: Target, description: '招标机会管理', badge: null },
 ];
 
 export default function RadarPage() {
@@ -188,11 +188,11 @@ export default function RadarPage() {
             </div>
             <div className="grid grid-cols-5 gap-3">
               {[
-                { step: 1, label: '画像与规则', href: '/c/knowledge/profiles', icon: Target },
-                { step: 2, label: '数据源渠道', href: '/c/radar/channels', icon: Radar },
-                { step: 3, label: '启动扫描', href: '/c/radar/tasks', icon: Zap },
-                { step: 4, label: '候选分层', href: '/c/radar/candidates', icon: Users },
-                { step: 5, label: '导入外联', href: '/c/radar/prospects', icon: Building2 },
+                { step: 1, label: '画像与规则', href: '/customer/knowledge/profiles', icon: Target },
+                { step: 2, label: '数据源渠道', href: '/customer/radar/channels', icon: Radar },
+                { step: 3, label: '启动扫描', href: '/customer/radar/tasks', icon: Zap },
+                { step: 4, label: '候选分层', href: '/customer/radar/candidates', icon: Users },
+                { step: 5, label: '导入外联', href: '/customer/radar/prospects', icon: Building2 },
               ].map((s) => (
                 <Link key={s.step} href={s.href}
                   className="group flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-all hover:bg-[rgba(212,175,55,0.08)]">
@@ -391,28 +391,28 @@ export default function RadarPage() {
                   label="本周新增"
                   value={counts.candidatesNew7d}
                   icon={<Zap size={18} className="text-blue-500" />}
-                  href="/c/radar/candidates?period=7d"
+                  href="/customer/radar/candidates?period=7d"
                   highlight={counts.candidatesNew7d > 0}
                 />
                 <StatCard
                   label="高质量候选"
                   value={counts.candidatesQualifiedAB7d}
                   icon={<TrendingUp size={18} className="text-emerald-500" />}
-                  href="/c/radar/candidates?tier=A,B"
+                  href="/customer/radar/candidates?tier=A,B"
                   highlight={counts.candidatesQualifiedAB7d > 0}
                 />
                 <StatCard
                   label="待审核"
                   value={counts.pendingReviewCount}
                   icon={<FileSearch size={18} className="text-amber-500" />}
-                  href="/c/radar/candidates?status=NEW"
+                  href="/customer/radar/candidates?status=NEW"
                   highlight={counts.pendingReviewCount > 0}
                 />
                 <StatCard
                   label="已导入"
                   value={counts.candidatesImported7d}
                   icon={<CheckCircle2 size={18} className="text-[#D4AF37]" />}
-                  href="/c/radar/prospects"
+                  href="/customer/radar/prospects"
                 />
               </div>
 
@@ -520,7 +520,7 @@ export default function RadarPage() {
                         可用 {counts.sourcesConfiguredCount} 个数据源
                       </span>
                       <Link 
-                        href="/c/radar/tasks" 
+                        href="/customer/radar/tasks" 
                         className="text-[#D4AF37] hover:underline"
                       >
                         查看详情
@@ -550,7 +550,7 @@ export default function RadarPage() {
                           : '请先在知识引擎中生成买家画像，以启用智能匹配'}
                       </p>
                       <Link
-                        href="/c/knowledge/profiles"
+                        href="/customer/knowledge/profiles"
                         className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900"
                       >
                         前往知识引擎

@@ -141,8 +141,8 @@ export default function LoginPage() {
         const isTowerDomain = hostname === "tower.vertax.top" || hostname === "tower.vertax.cn";
         const isCustomerDomain = hostname.endsWith(".vertax.top") && !isTowerDomain;
 
-        // Customer view → /c/home, Operations view (tower or vercel preview) → /dashboard
-        const targetPath = isCustomerDomain ? "/zh-CN/c/home" : "/zh-CN/dashboard";
+        // Customer view → /customer/home, Operations view (tower or vercel preview) → /dashboard
+        const targetPath = isCustomerDomain ? "/zh-CN/customer/home" : "/zh-CN/dashboard";
         router.push(targetPath);
         router.refresh();
       }

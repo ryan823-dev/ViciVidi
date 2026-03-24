@@ -85,7 +85,7 @@ export default function RadarError({
           </button>
           
           <Link
-            href="/c/radar"
+            href="/customer/radar"
             className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors"
           >
             <ArrowLeft size={16} />

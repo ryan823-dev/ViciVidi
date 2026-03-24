@@ -143,7 +143,7 @@ function KnowledgeIndicator({ counts }: { counts: GrowthPipelineCounts }) {
   
   return (
     <Link 
-      href="/c/knowledge"
+      href="/customer/knowledge"
       className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] hover:bg-amber-100 transition-colors"
       title={`企业档案: ${hasCompanyProfile ? '✓' : '✗'} | 买家画像: ${hasPersonas ? '✓' : '✗'} | 证据库: ${hasEvidence ? '✓' : '✗'}`}
     >
@@ -320,7 +320,7 @@ export function GrowthSecretaryPanel({ counts }: SecretaryPanelProps) {
       type: 'action',
       title: `${counts.briefsDraft} 个简报待完善`,
       description: '草稿状态的简报需要补充信息',
-      href: '/c/marketing/briefs?status=draft',
+      href: '/customer/marketing/briefs?status=draft',
     });
   }
 
@@ -330,7 +330,7 @@ export function GrowthSecretaryPanel({ counts }: SecretaryPanelProps) {
       type: 'action',
       title: `${counts.briefsReady} 个简报待生成`,
       description: '已就绪的简报可以生成内容草稿',
-      href: '/c/marketing/briefs?status=ready',
+      href: '/customer/marketing/briefs?status=ready',
     });
   }
 
@@ -340,7 +340,7 @@ export function GrowthSecretaryPanel({ counts }: SecretaryPanelProps) {
       type: 'warning',
       title: `${counts.missingProofCount} 条内容缺证据`,
       description: '请补充证据引用以增强可信度',
-      href: '/c/marketing/contents',
+      href: '/customer/marketing/contents',
     });
   }
 
@@ -350,7 +350,7 @@ export function GrowthSecretaryPanel({ counts }: SecretaryPanelProps) {
       type: 'info',
       title: `${counts.draftsPending} 个草稿待发布`,
       description: '完成审核后可创建发布包',
-      href: '/c/marketing/contents?status=draft',
+      href: '/customer/marketing/contents?status=draft',
     });
   }
 
@@ -360,7 +360,7 @@ export function GrowthSecretaryPanel({ counts }: SecretaryPanelProps) {
       type: 'action',
       title: `${counts.publishPacksPending} 个发布包待审核`,
       description: '审核通过后可发布到目标渠道',
-      href: '/c/marketing/strategy',
+      href: '/customer/marketing/strategy',
     });
   }
 
@@ -370,7 +370,7 @@ export function GrowthSecretaryPanel({ counts }: SecretaryPanelProps) {
       type: 'warning',
       title: '知识引擎未完善',
       description: '完善知识引擎可提升内容质量',
-      href: '/c/knowledge',
+      href: '/customer/knowledge',
     });
   }
 

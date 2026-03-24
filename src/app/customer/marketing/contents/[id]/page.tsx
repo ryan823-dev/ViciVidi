@@ -251,7 +251,7 @@ export default function ContentEditorPage() {
           evidenceRefs: form.evidenceRefs,
         });
         toast.success("内容已创建");
-        router.push(`/c/marketing/contents/${created.id}`);
+        router.push(`/customer/marketing/contents/${created.id}`);
       } else {
         await updateContentPiece(contentId, {
           title: form.title,
@@ -381,7 +381,7 @@ export default function ContentEditorPage() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/c/marketing/contents">
+              <Link href="/customer/marketing/contents">
                 <Button variant="ghost" size="icon" className="text-slate-400 hover:text-[#D4AF37]">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>

@@ -414,7 +414,7 @@ export function TopicClusterStarter({ counts: countsProp, onSuccess }: StarterPr
                     建议先完善知识引擎数据以获得更好的生成效果。
                   </p>
                   <Link
-                    href="/c/knowledge"
+                    href="/customer/knowledge"
                     className="inline-flex items-center gap-1 text-xs text-amber-400 font-medium mt-2 hover:underline"
                   >
                     前往知识引擎 <ArrowRight size={11} />

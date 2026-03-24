@@ -267,13 +267,13 @@ export default function ProfilesPage() {
                 <div className="flex items-center gap-2 text-amber-600 text-xs">
                   <AlertCircle size={14} />
                   <span>请先生成企业档案</span>
-                  <Link href="/c/knowledge/company" className="text-[#D4AF37] hover:underline">去企业档案</Link>
+                  <Link href="/customer/knowledge/company" className="text-[#D4AF37] hover:underline">去企业档案</Link>
                 </div>
               )}
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href="/c/knowledge/scoring"
+                href="/customer/knowledge/scoring"
                 className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[#D4AF37] bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg hover:bg-[#D4AF37]/20 transition-colors"
               >
                 <Settings size={14} />
@@ -308,7 +308,7 @@ export default function ProfilesPage() {
             <p className="text-sm text-slate-500 mb-2">需要先生成企业档案</p>
             <p className="text-xs text-slate-400 mb-4">企业档案将提供目标客户信息作为画像输入</p>
             <Link
-              href="/c/knowledge/company"
+              href="/customer/knowledge/company"
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#D4AF37] text-[#0B1220] rounded-xl text-sm font-medium hover:bg-[#D4AF37]/90 transition-colors shadow-[0_4px_16px_-2px_rgba(212,175,55,0.35)]"
             >
               <Building2 size={16} />

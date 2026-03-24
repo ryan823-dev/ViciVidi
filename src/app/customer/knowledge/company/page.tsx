@@ -415,7 +415,7 @@ export default function CompanyKnowledgePage() {
                   </div>
                 </div>
                 <Link
-                  href="/c/knowledge/assets"
+                  href="/customer/knowledge/assets"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-[#D4AF37] text-[#0B1220] rounded-xl text-sm font-medium hover:bg-[#D4AF37]/90 transition-colors shadow-[0_4px_16px_-2px_rgba(212,175,55,0.35)]"
                 >
                   <Upload size={16} />
