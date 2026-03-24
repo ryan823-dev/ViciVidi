@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +35,6 @@ function generateSlug(name: string): string {
 }
 
 export function CreateTenantDialog() {
-  const t = useTranslations("admin");
-  const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -110,7 +107,7 @@ export function CreateTenantDialog() {
       });
 
       if (result.success) {
-        toast.success(t("createSuccess"));
+        toast.success("租户创建成功");
         if (result.loginUrl) {
           setSuccessData({ loginUrl: result.loginUrl, email: adminEmail.trim().toLowerCase() });
         } else {
@@ -119,14 +116,14 @@ export function CreateTenantDialog() {
         }
       } else {
         const errorMessages: Record<string, string> = {
-          emailExists: t("emailExists"),
-          slugExists: t("slugExists"),
+          emailExists: "该邮箱已被使用",
+          slugExists: "该标识已被使用",
           roleNotFound: "系统角色未找到",
         };
-        setError(errorMessages[result.error || ""] || t("createError"));
+        setError(errorMessages[result.error || ""] || "创建失败");
       }
     } catch {
-      setError(t("createError"));
+      setError("创建失败");
     } finally {
       setLoading(false);
     }
@@ -137,13 +134,13 @@ export function CreateTenantDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          {t("createTenant")}
+          创建租户
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t("createTenant")}</DialogTitle>
-          <DialogDescription>{t("createTenantDesc")}</DialogDescription>
+          <DialogTitle>创建租户</DialogTitle>
+          <DialogDescription>创建新的租户账户并设置管理员</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -154,17 +151,17 @@ export function CreateTenantDialog() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="companyName">{t("tenantName")}</Label>
+              <Label htmlFor="companyName">租户名称</Label>
               <Input
                 id="companyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder={t("companyNamePlaceholder")}
+                placeholder="输入公司名称"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">{t("tenantSlug")}</Label>
+              <Label htmlFor="slug">租户标识</Label>
               <Input
                 id="slug"
                 value={slug}
@@ -172,22 +169,22 @@ export function CreateTenantDialog() {
                   setSlugManual(true);
                   setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
                 }}
-                placeholder={t("slugPlaceholder")}
+                placeholder="company-name"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="plan">{t("tenantPlan")}</Label>
+            <Label htmlFor="plan">租户套餐</Label>
             <Select value={plan} onValueChange={setPlan}>
               <SelectTrigger id="plan">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="free">{t("planFree")}</SelectItem>
-                <SelectItem value="pro">{t("planPro")}</SelectItem>
-                <SelectItem value="enterprise">{t("planEnterprise")}</SelectItem>
+                <SelectItem value="free">免费版</SelectItem>
+                <SelectItem value="pro">专业版</SelectItem>
+                <SelectItem value="enterprise">企业版</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -205,11 +202,11 @@ export function CreateTenantDialog() {
 
           <div className="border-t pt-4">
             <p className="text-sm font-medium text-muted-foreground mb-3">
-              {t("adminInfo")}
+              管理员信息
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="adminName">{t("adminName")}</Label>
+                <Label htmlFor="adminName">管理员姓名</Label>
                 <Input
                   id="adminName"
                   value={adminName}
@@ -218,7 +215,7 @@ export function CreateTenantDialog() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="adminEmail">{t("adminEmail")}</Label>
+                <Label htmlFor="adminEmail">管理员邮箱</Label>
                 <Input
                   id="adminEmail"
                   type="email"
@@ -230,7 +227,7 @@ export function CreateTenantDialog() {
               </div>
             </div>
             <div className="space-y-2 mt-4">
-              <Label htmlFor="password">{t("initialPassword")}</Label>
+              <Label htmlFor="password">初始密码</Label>
               <Input
                 id="password"
                 type="password"
@@ -265,10 +262,10 @@ export function CreateTenantDialog() {
                   onClick={() => setOpen(false)}
                   disabled={loading}
                 >
-                  {tc("cancel")}
+                  取消
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? tc("loading") : tc("confirm")}
+                  {loading ? "创建中..." : "确认创建"}
                 </Button>
               </>
             )}

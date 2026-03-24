@@ -1,11 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import createMiddleware from "next-intl/middleware";
-import { routing } from "@/i18n/routing";
 import { authConfig } from "@/lib/auth.config";
 import { resolveTenant } from "@/lib/tenant-resolver";
-
-const intlMiddleware = createMiddleware(routing);
 
 const { auth } = NextAuth(authConfig);
 
@@ -13,14 +9,11 @@ const publicPaths = ["/login", "/register", "/api/auth"];
 
 const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
-// Tower domains (operations view)
-const TOWER_DOMAINS = ["tower.vertax.top", "tower.vertax.cn"];
 const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || "vertax.top";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   // Get hostname - try multiple sources for Vercel compatibility
-  // req.nextUrl.host should contain the original host for custom domains
   const hostname = req.nextUrl.host || req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost";
   
   // Resolve tenant and view mode from domain
@@ -38,13 +31,13 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Allow external API routes (assets API for VertaX integration)
+  // Allow external API routes
   if (pathname.startsWith("/api/assets") || pathname.startsWith("/api/evidence") || pathname.startsWith("/api/ai")) {
     return NextResponse.next();
   }
 
   // Redirect root based on view mode
-  if (pathname === "/" || pathname === "/zh-CN" || pathname === "/en") {
+  if (pathname === "/") {
     // Check if accessing root domain (vertax.top) vs subdomain
     const hostParts = hostname.split(".");
     const isRootDomain = hostParts.length <= 2 || hostname === BASE_DOMAIN;
@@ -57,41 +50,39 @@ export default auth((req) => {
     // Subdomain: redirect based on view mode
     if (isDemoMode || req.auth) {
       // Customer view → customer home, Operations view → dashboard
-      const targetPath = isCustomerView ? "/zh-CN/c/home" : "/zh-CN/dashboard";
+      const targetPath = isCustomerView ? "/customer/home" : "/dashboard";
       return NextResponse.redirect(createRedirectUrl(targetPath));
     }
-    return NextResponse.redirect(createRedirectUrl("/zh-CN/login"));
+    return NextResponse.redirect(createRedirectUrl("/login"));
   }
   
-  // For customer domains, redirect /dashboard to /c/home
-  if (isCustomerView && pathname.includes("/dashboard")) {
-    const newPath = pathname.replace("/dashboard", "/c/home");
+  // For customer domains, redirect /dashboard to /customer/home
+  if (isCustomerView && pathname.startsWith("/dashboard")) {
+    const newPath = pathname.replace("/dashboard", "/customer/home");
     return NextResponse.redirect(createRedirectUrl(newPath));
   }
 
-  // In demo mode, skip auth checks entirely
+  // In demo mode, skip auth checks
   if (isDemoMode) {
-    return intlMiddleware(req);
+    return NextResponse.next();
   }
 
-  // Check if the path (without locale) is public
-  const pathnameWithoutLocale = pathname.replace(/^\/(zh-CN|en)/, "") || "/";
-  const isPublicPath = publicPaths.some((p) => pathnameWithoutLocale.startsWith(p));
+  const isPublicPath = publicPaths.some((p) => pathname.startsWith(p));
 
   // If not authenticated and not on public path, redirect to login
   if (!req.auth && !isPublicPath) {
-    const loginUrl = createRedirectUrl("/zh-CN/login");
+    const loginUrl = createRedirectUrl("/login");
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // If authenticated and on login/register, redirect to dashboard
-  if (req.auth && (pathnameWithoutLocale === "/login" || pathnameWithoutLocale === "/register")) {
-    const targetPath = isCustomerView ? "/zh-CN/c/home" : "/zh-CN/dashboard";
+  if (req.auth && (pathname === "/login" || pathname === "/register")) {
+    const targetPath = isCustomerView ? "/customer/home" : "/dashboard";
     return NextResponse.redirect(createRedirectUrl(targetPath));
   }
 
-  return intlMiddleware(req);
+  return NextResponse.next();
 });
 
 export const config = {

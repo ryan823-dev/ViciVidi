@@ -11,11 +11,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
 
 export function AppHeader() {
   const pathname = usePathname();
-  const t = useTranslations("nav");
 
   const segments = pathname
     .replace(/^\/(zh-CN|en)\//, "")
@@ -23,26 +21,26 @@ export function AppHeader() {
     .filter(Boolean);
 
   const breadcrumbMap: Record<string, string> = {
-    dashboard: t("dashboard"),
-    products: t("products"),
-    seo: t("seo"),
-    social: t("social"),
-    leads: t("leads"),
-    settings: t("settings"),
-    admin: t("admin"),
-    categories: t("productCategories"),
-    planner: t("seoPlanner"),
-    calendar: t("socialCalendar"),
-    accounts: t("socialAccounts"),
-    automation: t("socialAutomation"),
-    campaigns: t("leadCampaigns"),
-    research: t("leadResearch"),
-    profile: t("settingsProfile"),
-    company: t("settingsCompany"),
-    team: t("settingsTeam"),
-    website: t("settingsWebsite"),
-    tenants: t("adminTenants"),
-    system: t("adminSystem"),
+    dashboard: "工作台",
+    products: "产品",
+    seo: "SEO",
+    social: "社交媒体",
+    leads: "获客",
+    settings: "设置",
+    admin: "管理",
+    categories: "产品分类",
+    planner: "SEO 规划",
+    calendar: "社交日历",
+    accounts: "社交账号",
+    automation: "社交自动化",
+    campaigns: "获客活动",
+    research: "获客研究",
+    profile: "个人资料",
+    company: "公司信息",
+    team: "团队管理",
+    website: "网站设置",
+    tenants: "租户管理",
+    system: "系统设置",
     new: "新建",
   };
 

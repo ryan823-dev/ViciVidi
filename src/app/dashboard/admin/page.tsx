@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { PageHeader } from "@/components/common/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +28,6 @@ const planBadgeVariant: Record<string, "secondary" | "default" | "outline"> = {
 };
 
 export default function AdminPage() {
-  const t = useTranslations("admin");
   const params = useParams();
   const locale = params.locale as string;
   const [stats, setStats] = useState({ tenantCount: 0, userCount: 0 });
@@ -56,7 +54,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <PageHeader title={t("title")} description={t("manageDesc")}>
+      <PageHeader title="平台管理" description="管理所有租户和系统设置">
         <CreateTenantDialog />
       </PageHeader>
 
@@ -64,7 +62,7 @@ export default function AdminPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("totalTenants")}
+              租户总数
             </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -77,7 +75,7 @@ export default function AdminPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("totalUsers")}
+              用户总数
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -91,16 +89,16 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("tenants")}</CardTitle>
+          <CardTitle>租户列表</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-sm text-muted-foreground py-4 text-center">
-              {t("loading")}
+              加载中...
             </div>
           ) : tenants.length === 0 ? (
             <div className="text-sm text-muted-foreground py-4 text-center">
-              {t("noTenants")}
+              暂无租户
             </div>
           ) : (
             <div className="space-y-3">
@@ -117,10 +115,10 @@ export default function AdminPage() {
                   </div>
                   <div className="flex items-center gap-3 ml-4">
                     <span className="text-sm text-muted-foreground">
-                      {tenant._count.users} {t("userCount")}
+                      {tenant._count.users} 用户
                     </span>
                     <Badge variant={planBadgeVariant[tenant.plan] || "outline"}>
-                      {t(`plan${tenant.plan.charAt(0).toUpperCase() + tenant.plan.slice(1)}`)}
+                      {tenant.plan === "free" ? "免费版" : tenant.plan === "pro" ? "专业版" : "企业版"}
                     </Badge>
                     <Badge
                       variant="outline"
@@ -131,13 +129,13 @@ export default function AdminPage() {
                       }
                     >
                       {tenant.status === "active"
-                        ? t("statusActive")
-                        : t("statusSuspended")}
+                        ? "正常"
+                        : "已暂停"}
                     </Badge>
                     <Link href={`/${locale}/admin/tenants/${tenant.id}`}>
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4 mr-1" />
-                        {t("viewDetails")}
+                        查看详情
                       </Button>
                     </Link>
                   </div>

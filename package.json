@@ -40,7 +40,6 @@
     "markitdown": "^0.0.4",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
-    "next-intl": "^4.8.2",
     "next-themes": "^0.4.6",
     "officeparser": "^6.0.4",
     "openai": "^6.21.0",

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ import {
 import { Bot } from "lucide-react";
 
 export default function RegisterPage() {
-  const t = useTranslations("auth");
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -74,8 +72,8 @@ export default function RegisterPage() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Bot className="h-6 w-6" />
         </div>
-        <CardTitle className="text-2xl">{t("registerTitle")}</CardTitle>
-        <CardDescription>{t("registerDesc")}</CardDescription>
+        <CardTitle className="text-2xl">注册账户</CardTitle>
+        <CardDescription>创建您的账户以开始使用</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,7 +83,7 @@ export default function RegisterPage() {
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="companyName">{t("companyName")}</Label>
+            <Label htmlFor="companyName">公司名称</Label>
             <Input
               id="companyName"
               name="companyName"
@@ -94,11 +92,11 @@ export default function RegisterPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">{t("name")}</Label>
+            <Label htmlFor="name">姓名</Label>
             <Input id="name" name="name" placeholder="您的姓名" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">{t("email")}</Label>
+            <Label htmlFor="email">邮箱</Label>
             <Input
               id="email"
               name="email"
@@ -108,7 +106,7 @@ export default function RegisterPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">{t("password")}</Label>
+            <Label htmlFor="password">密码</Label>
             <Input
               id="password"
               name="password"
@@ -119,17 +117,17 @@ export default function RegisterPage() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "..." : t("registerButton")}
+            {loading ? "..." : "注册"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="justify-center text-sm text-muted-foreground">
-        {t("hasAccount")}{" "}
+        已有账户？{" "}
         <Link
           href="/zh-CN/login"
           className="ml-1 font-medium text-primary underline-offset-4 hover:underline"
         >
-          {t("login")}
+          登录
         </Link>
       </CardFooter>
     </Card>

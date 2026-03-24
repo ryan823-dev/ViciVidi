@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useTranslations } from "next-intl";
 import { ChevronsUpDown, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -20,8 +19,6 @@ import {
 import Link from "next/link";
 
 export function UserMenu() {
-  const t = useTranslations("auth");
-  const navT = useTranslations("nav");
   const { data: session } = useSession();
   const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   const demoUser = {
@@ -92,7 +89,7 @@ export function UserMenu() {
             <DropdownMenuItem asChild>
               <Link href="/zh-CN/settings/profile">
                 <User className="mr-2 h-4 w-4" />
-                {navT("settingsProfile")}
+                个人资料
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -100,7 +97,7 @@ export function UserMenu() {
               onClick={() => signOut({ callbackUrl: "/zh-CN/login" })}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              {t("logout")}
+              退出登录
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

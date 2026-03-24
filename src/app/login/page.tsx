@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +66,6 @@ function getTenantSlugFromUrl(url: string): string | null {
 }
 
 export default function LoginPage() {
-  const t = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -130,7 +128,7 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError(t("invalidCredentials"));
+      setError("邮箱或密码错误");
       setLoading(false);
     } else {
       // Successfully logged in
@@ -157,8 +155,8 @@ export default function LoginPage() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Bot className="h-6 w-6" />
         </div>
-        <CardTitle className="text-2xl">{t("loginTitle")}</CardTitle>
-        <CardDescription>{t("loginDesc")}</CardDescription>
+        <CardTitle className="text-2xl">登录</CardTitle>
+        <CardDescription>输入您的邮箱和密码以登录</CardDescription>
       </CardHeader>
       <CardContent>
         {/* Show redirect notice if redirecting to Vertax */}
@@ -167,7 +165,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-2">
               <ExternalLink className="h-4 w-4" />
               <span>
-                {t("redirectNotice") || `登录后将跳转到 ${targetTenant} 工作台`}
+                登录后将跳转到 {targetTenant} 工作台
               </span>
             </div>
           </div>
@@ -180,7 +178,7 @@ export default function LoginPage() {
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="email">{t("email")}</Label>
+            <Label htmlFor="email">邮箱</Label>
             <Input
               id="email"
               name="email"
@@ -190,7 +188,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">{t("password")}</Label>
+            <Label htmlFor="password">密码</Label>
             <Input
               id="password"
               name="password"
@@ -200,17 +198,17 @@ export default function LoginPage() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "..." : t("loginButton")}
+            {loading ? "..." : "登录"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="justify-center text-sm text-muted-foreground">
-        {t("noAccount")}{" "}
+        还没有账户？{" "}
         <Link
           href="/zh-CN/register"
           className="ml-1 font-medium text-primary underline-offset-4 hover:underline"
         >
-          {t("register")}
+          注册
         </Link>
       </CardFooter>
     </Card>

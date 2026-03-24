@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import {
   Package,
@@ -50,7 +49,6 @@ import {
 import { UserMenu } from "./user-menu";
 
 export function AppSidebar() {
-  const t = useTranslations("nav");
   const pathname = usePathname();
   const { data: session } = useSession();
   const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
@@ -74,7 +72,7 @@ export function AppSidebar() {
       key: "main",
       items: [
         {
-          title: t("dashboard"),
+          title: "工作台",
           url: "/zh-CN/dashboard",
           icon: LayoutDashboard,
         },
@@ -83,22 +81,22 @@ export function AppSidebar() {
     // 知识引擎（基础层）
     {
       key: "knowledge",
-      label: t("knowledge"),
+      label: "知识引擎",
       icon: Brain,
       items: [
-        { title: t("knowledgeProfile"), url: "/zh-CN/knowledge", icon: Brain },
-        { title: t("assetAll"), url: "/zh-CN/assets", icon: FolderOpen },
+        { title: "知识库", url: "/zh-CN/knowledge", icon: Brain },
+        { title: "全部资产", url: "/zh-CN/assets", icon: FolderOpen },
       ],
     },
     // 产品管理
     {
       key: "products",
-      label: t("products"),
+      label: "产品管理",
       icon: Package,
       items: [
-        { title: t("productList"), url: "/zh-CN/products", icon: List },
+        { title: "产品列表", url: "/zh-CN/products", icon: List },
         {
-          title: t("productCategories"),
+          title: "产品分类",
           url: "/zh-CN/products/categories",
           icon: FolderOpen,
         },
@@ -107,28 +105,28 @@ export function AppSidebar() {
     // 营销系统（Inbound）
     {
       key: "marketing",
-      label: t("marketing"),
+      label: "营销系统",
       icon: TrendingUp,
       items: [
-        { title: t("seoContent"), url: "/zh-CN/seo", icon: FileText },
+        { title: "SEO 内容", url: "/zh-CN/seo", icon: FileText },
         {
-          title: t("seoCategories"),
+          title: "SEO 分类",
           url: "/zh-CN/seo/categories",
           icon: FolderOpen,
         },
-        { title: t("seoPlanner"), url: "/zh-CN/seo/planner", icon: Search },
+        { title: "SEO 规划", url: "/zh-CN/seo/planner", icon: Search },
       ],
     },
     // 获客雷达（Outbound）
     {
       key: "radar",
-      label: t("radar"),
+      label: "获客雷达",
       icon: Radar,
       items: [
-        { title: t("leadResearch"), url: "/zh-CN/leads/research", icon: Search },
-        { title: t("leadList"), url: "/zh-CN/leads", icon: List },
+        { title: "线索挖掘", url: "/zh-CN/leads/research", icon: Search },
+        { title: "线索列表", url: "/zh-CN/leads", icon: List },
         {
-          title: t("leadCampaigns"),
+          title: "获客活动",
           url: "/zh-CN/leads/campaigns",
           icon: Megaphone,
         },
@@ -137,22 +135,22 @@ export function AppSidebar() {
     // 声量枢纽（社媒+PR）
     {
       key: "social",
-      label: t("social"),
+      label: "社交媒体",
       icon: Share2,
       items: [
-        { title: t("socialPosts"), url: "/zh-CN/social", icon: Megaphone },
+        { title: "社媒帖子", url: "/zh-CN/social", icon: Megaphone },
         {
-          title: t("socialCalendar"),
+          title: "社交日历",
           url: "/zh-CN/social/calendar",
           icon: CalendarDays,
         },
         {
-          title: t("socialAccounts"),
+          title: "社交账号",
           url: "/zh-CN/social/accounts",
           icon: Users,
         },
         {
-          title: t("socialAutomation"),
+          title: "社交自动化",
           url: "/zh-CN/social/automation",
           icon: Zap,
         },
@@ -161,26 +159,26 @@ export function AppSidebar() {
     // 设置
     {
       key: "settings",
-      label: t("settings"),
+      label: "设置",
       icon: Settings,
       items: [
         {
-          title: t("settingsProfile"),
+          title: "个人资料",
           url: "/zh-CN/settings/profile",
           icon: Users,
         },
         {
-          title: t("settingsCompany"),
+          title: "公司信息",
           url: "/zh-CN/settings/company",
           icon: Package,
         },
         {
-          title: t("settingsTeam"),
+          title: "团队管理",
           url: "/zh-CN/settings/team",
           icon: Users,
         },
         {
-          title: t("settingsWebsite"),
+          title: "网站设置",
           url: "/zh-CN/settings/website",
           icon: Globe,
         },
@@ -191,21 +189,21 @@ export function AppSidebar() {
   if (isAdmin) {
     navGroups.push({
       key: "admin",
-      label: t("admin"),
+      label: "平台管理",
       icon: ShieldCheck,
       items: [
         {
-          title: t("adminTenants"),
+          title: "租户管理",
           url: "/zh-CN/admin/tenants",
           icon: Users,
         },
         {
-          title: t("adminApiKeys"),
+          title: "API 密钥",
           url: "/zh-CN/admin/api-keys",
           icon: Key,
         },
         {
-          title: t("adminSystem"),
+          title: "系统设置",
           url: "/zh-CN/admin/system",
           icon: Settings,
         },

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/page-header";
@@ -45,7 +44,6 @@ type TenantDetail = {
 };
 
 export default function TenantDetailPage() {
-  const t = useTranslations("admin");
   const params = useParams();
   const router = useRouter();
   const [tenant, setTenant] = useState<TenantDetail | null>(null);
@@ -116,11 +114,11 @@ export default function TenantDetailPage() {
       if (result.success) {
         setTenant({ ...tenant, status: newStatus });
         toast.success(
-          newStatus === "active" ? t("activateSuccess") : t("suspendSuccess")
+          newStatus === "active" ? "已激活租户" : "已暂停租户"
         );
       }
     } catch {
-      toast.error(t("createError"));
+      toast.error("操作失败");
     } finally {
       setStatusLoading(false);
     }
@@ -161,9 +159,9 @@ export default function TenantDetailPage() {
   if (loading) {
     return (
       <div>
-        <PageHeader title={t("tenantDetails")} />
+        <PageHeader title="租户详情" />
         <div className="text-sm text-muted-foreground py-8 text-center">
-          {t("loading")}
+          加载中...
         </div>
       </div>
     );
@@ -172,9 +170,9 @@ export default function TenantDetailPage() {
   if (!tenant) {
     return (
       <div>
-        <PageHeader title={t("tenantDetails")} />
+        <PageHeader title="租户详情" />
         <div className="text-sm text-muted-foreground py-8 text-center">
-          {t("notFound")}
+          未找到租户
         </div>
       </div>
     );
@@ -186,7 +184,7 @@ export default function TenantDetailPage() {
     <div>
       <PageHeader title={tenant.name} description={tenant.slug}>
         <Button variant="ghost" onClick={() => router.push(`/${locale}/admin`)}>
-          {t("backToList")}
+          返回列表
         </Button>
         <Dialog>
           <DialogTrigger asChild>
@@ -194,16 +192,16 @@ export default function TenantDetailPage() {
               variant={isActive ? "outline" : "default"}
               disabled={statusLoading}
             >
-              {isActive ? t("suspend") : t("activate")}
+              {isActive ? "暂停" : "激活"}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {isActive ? t("suspend") : t("activate")}
+                {isActive ? "暂停租户" : "激活租户"}
               </DialogTitle>
               <DialogDescription>
-                {isActive ? t("confirmSuspend") : t("confirmActivate")}
+                {isActive ? "确定要暂停此租户吗？租户将无法访问系统。" : "确定要激活此租户吗？租户将恢复访问权限。"}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -212,7 +210,7 @@ export default function TenantDetailPage() {
                 disabled={statusLoading}
                 variant={isActive ? "destructive" : "default"}
               >
-                {statusLoading ? "..." : isActive ? t("suspend") : t("activate")}
+                {statusLoading ? "..." : isActive ? "暂停" : "激活"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -223,25 +221,25 @@ export default function TenantDetailPage() {
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>{t("basicInfo")}</CardTitle>
+            <CardTitle>基本信息</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("tenantName")}</span>
+              <span className="text-muted-foreground">租户名称</span>
               <span className="font-medium">{tenant.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("tenantSlug")}</span>
+              <span className="text-muted-foreground">租户标识</span>
               <span className="font-medium">{tenant.slug}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("tenantPlan")}</span>
+              <span className="text-muted-foreground">租户套餐</span>
               <Badge variant="secondary">
-                {t(`plan${tenant.plan.charAt(0).toUpperCase() + tenant.plan.slice(1)}`)}
+                {tenant.plan === "free" ? "免费版" : tenant.plan === "pro" ? "专业版" : "企业版"}
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("tenantStatus")}</span>
+              <span className="text-muted-foreground">租户状态</span>
               <Badge
                 variant="outline"
                 className={
@@ -250,11 +248,11 @@ export default function TenantDetailPage() {
                     : "text-red-600 border-red-200"
                 }
               >
-                {isActive ? t("statusActive") : t("statusSuspended")}
+                {isActive ? "正常" : "已暂停"}
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("createdDate")}</span>
+              <span className="text-muted-foreground">创建日期</span>
               <span className="font-medium">
                 {new Date(tenant.createdAt).toLocaleDateString(locale)}
               </span>
@@ -265,23 +263,23 @@ export default function TenantDetailPage() {
         {/* Usage Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>{t("usageStats")}</CardTitle>
+            <CardTitle>使用统计</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("statProducts")}</span>
+              <span className="text-muted-foreground">产品数量</span>
               <span className="font-medium">{tenant._count.products}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("statContents")}</span>
+              <span className="text-muted-foreground">内容数量</span>
               <span className="font-medium">{tenant._count.seoContents}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("statPosts")}</span>
+              <span className="text-muted-foreground">社媒帖子</span>
               <span className="font-medium">{tenant._count.socialPosts}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("statLeads")}</span>
+              <span className="text-muted-foreground">线索数量</span>
               <span className="font-medium">{tenant._count.leads}</span>
             </div>
           </CardContent>
@@ -370,7 +368,7 @@ export default function TenantDetailPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>
-            {t("users")} ({tenant.users.length})
+            用户列表 ({tenant.users.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -388,8 +386,8 @@ export default function TenantDetailPage() {
                   <Badge variant="outline">{user.role.displayName}</Badge>
                   <span className="text-xs text-muted-foreground">
                     {user.lastLoginAt
-                      ? `${t("lastLogin")}: ${new Date(user.lastLoginAt).toLocaleDateString(locale)}`
-                      : t("neverLoggedIn")}
+                      ? `最后登录：${new Date(user.lastLoginAt).toLocaleDateString(locale)}`
+                      : "从未登录"}
                   </span>
                 </div>
               </div>
