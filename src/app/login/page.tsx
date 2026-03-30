@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,13 +67,20 @@ function getTenantSlugFromUrl(url: string): string | null {
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // Get redirect URL from query params
-  const redirectUrl = searchParams.get("redirect");
+  // Get redirect URL from query params on client side only
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    if (redirect) {
+      setRedirectUrl(redirect);
+    }
+  }, []);
+
   const isExternalRedirect = redirectUrl && isValidVertaxRedirect(redirectUrl);
   const targetTenant = redirectUrl ? getTenantSlugFromUrl(redirectUrl) : null;
 
@@ -142,7 +149,7 @@ export default function LoginPage() {
         const isCustomerDomain = hostname.endsWith(".vertax.top") && !isTowerDomain;
 
         // Customer view → /customer/home, Operations view (tower or vercel preview) → /dashboard
-        const targetPath = isCustomerDomain ? "/zh-CN/customer/home" : "/zh-CN/dashboard";
+        const targetPath = isCustomerDomain ? "/customer/home" : "/dashboard";
         router.push(targetPath);
         router.refresh();
       }

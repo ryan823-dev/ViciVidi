@@ -1,20 +1,31 @@
 /**
- * Cron: 雷达 AI 合格化
- * 
- * 每 15 分钟执行一次，对 status=NEW 的候选批量执行 AI 合格化。
- * 按 profileId 分组（条款D），使用正确的 TargetingSpec。
- * 包含 Feedback Loop（条款F）。
- * 
- * 配置 vercel.json cron: every 15 minutes
+ * Cron: 雷达双阶段合格化
+ *
+ * Stage 1（规则快筛，0 token）: 排除词 + 负向信号 + 排除规则 → 快速淘汰明显不匹配的候选
+ * Stage 2（AI 深度评估）: 对通过 Stage 1 的候选，基于 CompanyProfile + ICP 深度判断匹配度
+ *
+ * 设计原则：
+ * - Stage 1 宁可多放过，不可多排除（假阳性交给 Stage 2 处理）
+ * - Stage 2 基于"我们的产品 vs 客户需求"做深度匹配
+ * - AI 调用失败时降级为 C 类，不阻塞流程
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAdapterRegistration, ensureAdaptersInitialized } from '@/lib/radar/adapters';
+import { ensureAdaptersInitialized } from '@/lib/radar/adapters';
 import { Prisma } from '@prisma/client';
+import {
+  deepQualifyBatch,
+  applyDeepQualifyResults,
+  type DeepQualifyCandidate,
+} from '@/lib/radar/deep-qualify';
+
+import type { ScoringProfile } from '@/types/scoring-profile';
+import { DEFAULT_SCORING_PROFILE } from '@/types/scoring-profile';
 
 const MAX_RUN_SECONDS = 50;
 const MAX_BATCH_SIZE = 50;
+const AI_BATCH_SIZE = 10; // AI 每批处理的候选数量
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -28,15 +39,24 @@ export async function GET(req: NextRequest) {
   ensureAdaptersInitialized();
 
   const stats = {
-    processed: 0,
-    qualified: 0,
-    excluded: 0,
-    enriching: 0,
+    // Stage 1
+    stage1_processed: 0,
+    stage1_excluded: 0,
+    stage1_passed: 0,
+    // Stage 2
+    stage2_processed: 0,
+    stage2_tierA: 0,
+    stage2_tierB: 0,
+    stage2_tierC: 0,
+    stage2_excluded: 0,
+    stage2_enriching: 0,
+    stage2_tokensUsed: 0,
+    // Overall
     errors: [] as string[],
   };
 
   try {
-    // 条款D: 查询 NEW 候选，按 profileId 分组
+    // 查询 NEW 候选，按 profileId 分组
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const candidates = await prisma.radarCandidate.findMany({
       where: {
@@ -61,7 +81,6 @@ export async function GET(req: NextRequest) {
       grouped.get(pid)!.push(c);
     }
 
-    // 对每组执行合格化
     for (const [profileId, batch] of grouped) {
       if (Date.now() >= deadline) {
         stats.errors.push('Timeout reached');
@@ -74,69 +93,86 @@ export async function GET(req: NextRequest) {
         });
         if (!profile) continue;
 
-        // 简化合格化逻辑（不依赖 Skill Runner，直接基于规则）
-        // 后续可升级为 executeSkill(RADAR_QUALIFY_ACCOUNTS)
+        const tenantId = batch[0].tenantId;
+
+        // ==================== Stage 1: 规则快筛 ====================
+        const scoringConfig = await getScoringConfig(tenantId);
+        const stage1Passed: typeof candidates = [];
+
         for (const candidate of batch) {
           if (Date.now() >= deadline) break;
 
-          try {
-            // 使用配置化评分逻辑
-            const tier = await scoreCandidate(candidate, {
-              ...profile,
-              tenantId: candidate.tenantId,
+          const exclusionResult = stage1RuleFilter(candidate, {
+            ...profile,
+            tenantId,
+          }, scoringConfig);
+
+          stats.stage1_processed++;
+
+          if (exclusionResult.excluded) {
+            // 直接排除，不消耗 AI token
+            await prisma.radarCandidate.update({
+              where: { id: candidate.id },
+              data: {
+                status: 'EXCLUDED',
+                qualifyTier: 'excluded',
+                qualifyReason: `Stage 1: ${exclusionResult.reason}`,
+                qualifiedAt: new Date(),
+                qualifiedBy: 'rule-filter',
+              },
             });
+            stats.stage1_excluded++;
 
-            if (tier === 'excluded') {
-              await prisma.radarCandidate.update({
-                where: { id: candidate.id },
-                data: {
-                  status: 'EXCLUDED',
-                  qualifyTier: 'excluded',
-                  qualifyReason: 'Auto-qualify: below threshold',
-                  qualifiedAt: new Date(),
-                  qualifiedBy: 'scheduler',
-                },
-              });
-              stats.excluded++;
+            await appendExclusionRule(profileId, candidate.displayName);
+          } else {
+            stage1Passed.push(candidate);
+            stats.stage1_passed++;
+          }
+        }
 
-              // Feedback Loop: 记录排除原因
-              await appendExclusionRule(profileId, candidate.displayName, candidate.industry);
-            } else {
-              // 判断是否需要 enrich（缺关键联系方式）
-              const shouldEnrich = needsEnrichment(candidate) &&
-                candidate.source.storagePolicy !== 'ID_ONLY';
+        // ==================== Stage 2: AI 深度评估 ====================
+        if (stage1Passed.length > 0 && Date.now() < deadline) {
+          // 将候选转换为 AI 评估格式
+          const aiCandidates: DeepQualifyCandidate[] = stage1Passed.map(c => ({
+            id: c.id,
+            displayName: c.displayName,
+            website: c.website,
+            description: c.description,
+            industry: c.industry,
+            country: c.country,
+            city: c.city,
+            companySize: c.companySize,
+            sourceUrl: c.sourceUrl,
+            sourceChannel: (c.matchExplain as Record<string, unknown>)?.channel as string || c.source.channelType,
+            matchExplain: c.matchExplain as Record<string, unknown> | null,
+          }));
 
-              const adapterReg = getAdapterRegistration(candidate.source.code);
-              const supportsDetails = adapterReg?.features?.supportsDetails ?? false;
-
-              // 如果需要enrich且adapter支持，进入ENRICHING
-              // 否则直接QUALIFIED
-              const finalEnrich = shouldEnrich && supportsDetails;
-
-              await prisma.radarCandidate.update({
-                where: { id: candidate.id },
-                data: {
-                  status: finalEnrich ? 'ENRICHING' : 'QUALIFIED',
-                  qualifyTier: tier,
-                  qualifyReason: finalEnrich
-                    ? `Auto-qualify: tier ${tier}, needs enrichment`
-                    : `Auto-qualify: tier ${tier}`,
-                  qualifiedAt: new Date(),
-                  qualifiedBy: 'scheduler',
-                },
-              });
-
-              if (finalEnrich) {
-                stats.enriching++;
-              } else {
-                stats.qualified++;
-              }
+          // 分批调用 AI（每批 AI_BATCH_SIZE 个）
+          for (let i = 0; i < aiCandidates.length; i += AI_BATCH_SIZE) {
+            if (Date.now() >= deadline) {
+              stats.errors.push('Timeout reached during Stage 2');
+              break;
             }
-            stats.processed++;
-          } catch (candidateError) {
-            stats.errors.push(
-              `Candidate ${candidate.id}: ${candidateError instanceof Error ? candidateError.message : 'Unknown'}`
-            );
+
+            const aiBatch = aiCandidates.slice(i, i + AI_BATCH_SIZE);
+
+            const aiResult = await deepQualifyBatch(tenantId, aiBatch);
+            stats.stage2_tokensUsed += aiResult.tokensUsed;
+            stats.errors.push(...aiResult.errors);
+
+            // 统计
+            for (const r of aiResult.results) {
+              stats.stage2_processed++;
+              if (r.tier === 'A') stats.stage2_tierA++;
+              else if (r.tier === 'B') stats.stage2_tierB++;
+              else if (r.tier === 'C') stats.stage2_tierC++;
+              else if (r.tier === 'excluded') stats.stage2_excluded++;
+            }
+
+            // 写回数据库
+            const applyResult = await applyDeepQualifyResults(aiResult.results, profileId);
+            stats.stage2_enriching += applyResult.excluded; // reuse for enriching count
+            stats.errors.push(...applyResult.errors);
           }
         }
       } catch (groupError) {
@@ -147,8 +183,9 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(
-      `[radar-qualify] Processed ${stats.processed}, ` +
-      `qualified: ${stats.qualified}, excluded: ${stats.excluded}, enriching: ${stats.enriching}`
+      `[radar-qualify] Stage 1: ${stats.stage1_processed} processed (${stats.stage1_excluded} excluded, ${stats.stage1_passed} passed) | ` +
+      `Stage 2: ${stats.stage2_processed} processed (A:${stats.stage2_tierA} B:${stats.stage2_tierB} C:${stats.stage2_tierC} excluded:${stats.stage2_excluded}) | ` +
+      `Tokens: ${stats.stage2_tokensUsed}`
     );
 
     return NextResponse.json({ ok: true, ...stats });
@@ -161,21 +198,71 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ==================== 评分逻辑 ====================
+// ==================== Stage 1: 规则快筛 ====================
 
-import type { ScoringProfile } from '@/types/scoring-profile';
-import { DEFAULT_SCORING_PROFILE } from '@/types/scoring-profile';
-
-// 缓存评分配置（避免频繁查询数据库）
-let scoringProfileCache: { profile: ScoringProfile; tenantId: string; expiresAt: number } | null = null;
+interface Stage1Result {
+  excluded: boolean;
+  reason: string;
+}
 
 /**
- * 获取评分配置
- *
- * 优先从 ICPSegment 读取用户自定义配置，否则使用默认配置
+ * Stage 1 快速筛选：只淘汰"明显不匹配"的候选
+ * 设计原则：宁可放过，不可错杀
  */
+function stage1RuleFilter(
+  candidate: {
+    displayName: string;
+    website?: string | null;
+    description?: string | null;
+    matchExplain?: Prisma.JsonValue | null;
+  },
+  profile: {
+    exclusionRules: unknown;
+    tenantId: string;
+  },
+  config: ScoringProfile,
+): Stage1Result {
+  const text = `${candidate.displayName} ${candidate.description || ''}`.toLowerCase();
+
+  // 1. 负向信号检查（命中即排除）
+  for (const signal of config.negativeSignals) {
+    const matchCount = signal.keywords.filter(kw => text.includes(kw.toLowerCase())).length;
+    // 需要命中多个关键词才排除（降低误杀率）
+    if (matchCount >= 2) {
+      return { excluded: true, reason: `负向信号: ${signal.name} (${matchCount} keywords matched)` };
+    }
+    // 单个关键词命中但非常精确（如完整匹配公司类型词）
+    if (matchCount === 1) {
+      const matched = signal.keywords.find(kw => text.includes(kw.toLowerCase()))!;
+      // 只在候选名称中精确包含该关键词时才排除
+      if (candidate.displayName.toLowerCase().includes(matched.toLowerCase())) {
+        return { excluded: true, reason: `负向信号: ${signal.name} (name match: "${matched}")` };
+      }
+    }
+  }
+
+  // 2. 排除规则检查（已排除的公司名）
+  const rules = (profile.exclusionRules as { excludedCompanies?: string[] }) || {};
+  if (rules.excludedCompanies?.length) {
+    const nameLower = candidate.displayName.toLowerCase();
+    const matched = rules.excludedCompanies.find(excluded =>
+      nameLower === excluded.toLowerCase() ||
+      nameLower.includes(excluded.toLowerCase())
+    );
+    if (matched) {
+      return { excluded: true, reason: `排除名单: "${matched}"` };
+    }
+  }
+
+  // Stage 1 通过
+  return { excluded: false, reason: '' };
+}
+
+// ==================== 评分配置加载 ====================
+
+let scoringProfileCache: { profile: ScoringProfile; tenantId: string; expiresAt: number } | null = null;
+
 async function getScoringConfig(tenantId: string): Promise<ScoringProfile> {
-  // 检查缓存（5分钟有效）
   if (scoringProfileCache &&
       scoringProfileCache.tenantId === tenantId &&
       scoringProfileCache.expiresAt > Date.now()) {
@@ -183,7 +270,6 @@ async function getScoringConfig(tenantId: string): Promise<ScoringProfile> {
   }
 
   try {
-    // 从第一个 ICPSegment 读取配置
     const segment = await prisma.iCPSegment.findFirst({
       where: { tenantId },
       select: { criteria: true },
@@ -194,11 +280,10 @@ async function getScoringConfig(tenantId: string): Promise<ScoringProfile> {
       const criteria = segment.criteria as Record<string, unknown>;
       if (criteria.scoringProfile) {
         const profile = criteria.scoringProfile as ScoringProfile;
-        // 更新缓存
         scoringProfileCache = {
           profile,
           tenantId,
-          expiresAt: Date.now() + 5 * 60 * 1000, // 5分钟
+          expiresAt: Date.now() + 5 * 60 * 1000,
         };
         return profile;
       }
@@ -210,117 +295,11 @@ async function getScoringConfig(tenantId: string): Promise<ScoringProfile> {
   return DEFAULT_SCORING_PROFILE;
 }
 
-/**
- * 评分逻辑 v3 - 配置化版本
- *
- * 使用用户自定义的评分规则，而非硬编码
- * 支持基于信号来源的加分
- */
-async function scoreCandidate(
-  candidate: {
-    displayName: string;
-    website?: string | null;
-    phone?: string | null;
-    email?: string | null;
-    country?: string | null;
-    industry?: string | null;
-    matchScore?: number | null;
-    description?: string | null;
-    matchExplain?: Prisma.JsonValue | null;
-  },
-  profile: { targetCountries: string[]; industryCodes: string[]; exclusionRules: unknown; tenantId: string }
-): Promise<'A' | 'B' | 'C' | 'excluded'> {
-  // 获取评分配置
-  const config = await getScoringConfig(profile.tenantId);
-
-  // 合并名称和描述进行分析
-  const text = `${candidate.displayName} ${candidate.description || ''}`.toLowerCase();
-
-  // ========== 负向信号检查（排除） ==========
-  for (const signal of config.negativeSignals) {
-    const matched = signal.keywords.some(kw => text.includes(kw.toLowerCase()));
-    if (matched) {
-      return 'excluded';
-    }
-  }
-
-  // ========== 正向信号评分 ==========
-  let score = config.baseScore;
-
-  for (const signal of config.positiveSignals) {
-    const matched = signal.keywords.some(kw => text.includes(kw.toLowerCase()));
-    if (matched) {
-      score += signal.weight;
-    }
-  }
-
-  // ========== 联系方式完整性 ==========
-  if (candidate.website) score += config.contactScoring.hasWebsite;
-  if (candidate.phone) score += config.contactScoring.hasPhone;
-  if (candidate.email) score += config.contactScoring.hasEmail;
-
-  // ========== 信号来源加分 ==========
-  const matchExplainObj = candidate.matchExplain && typeof candidate.matchExplain === 'object' && !Array.isArray(candidate.matchExplain) 
-    ? candidate.matchExplain as { channel?: string } 
-    : null;
-  const channel = matchExplainObj?.channel;
-  if (channel && config.channelScoring) {
-    const channelScore = config.channelScoring[channel as keyof typeof config.channelScoring];
-    if (channelScore) {
-      score += channelScore;
-    }
-  }
-
-  // ========== 目标国家匹配 ==========
-  if (candidate.country && profile.targetCountries.length > 0) {
-    const normalizedCountry = candidate.country.toUpperCase();
-    const matched = profile.targetCountries.some(tc => {
-      const tcUpper = tc.toUpperCase();
-      return normalizedCountry.includes(tcUpper) ||
-             tcUpper.includes(normalizedCountry.slice(0, 2)) ||
-             normalizedCountry.startsWith(tcUpper);
-    });
-    if (matched) score += config.targetCountryBonus;
-  }
-
-  // ========== 已有匹配分数 ==========
-  if (candidate.matchScore) score += Math.round(candidate.matchScore * 10);
-
-  // ========== 排除规则检查 ==========
-  const rules = (profile.exclusionRules as { excludedCompanies?: string[] }) || {};
-  if (rules.excludedCompanies?.length) {
-    const nameLower = candidate.displayName.toLowerCase();
-    if (rules.excludedCompanies.some(excluded =>
-      nameLower === excluded.toLowerCase() ||
-      nameLower.includes(excluded.toLowerCase())
-    )) {
-      return 'excluded';
-    }
-  }
-
-  // ========== 层级判定 ==========
-  if (score >= config.thresholds.tierA) return 'A';   // 优质客户
-  if (score >= config.thresholds.tierB) return 'B';   // 潜力客户
-  return 'C';                                          // 一般客户
-}
-
-/**
- * 判断候选是否需要enrichment
- */
-function needsEnrichment(candidate: {
-  website?: string | null;
-  phone?: string | null;
-}): boolean {
-  return !candidate.website && !candidate.phone;
-}
-
 // ==================== Feedback Loop ====================
-// 注意：已禁用恶性关键词排除，只保留公司名排除（用于去重）
 
 async function appendExclusionRule(
   profileId: string,
   displayName: string,
-  industry?: string | null
 ): Promise<void> {
   try {
     const profile = await prisma.radarSearchProfile.findUnique({
@@ -334,24 +313,19 @@ async function appendExclusionRule(
     }) || {};
 
     const existingComp = existingRules.excludedCompanies || [];
-
-    // 限制排除规则总数（防止无限增长）
     const MAX_EXCLUSIONS = 200;
     if (existingComp.length >= MAX_EXCLUSIONS) return;
 
-    // 只添加公司名，不拆分关键词（避免恶性排除）
     await prisma.radarSearchProfile.update({
       where: { id: profileId },
       data: {
         exclusionRules: {
-          // 清空恶性关键词列表
           negativeKeywords: [],
-          // 只保留公司名排除
           excludedCompanies: [...new Set([...existingComp, displayName])].slice(0, MAX_EXCLUSIONS),
         } as object,
       },
     });
-  } catch (error) {
-    console.warn('[addToExclusionList] Failed to add company:', String(error));
+  } catch {
+    // 静默失败
   }
 }

@@ -13,8 +13,8 @@ const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || "vertax.top";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  // Get hostname - try multiple sources for Vercel compatibility
-  const hostname = req.nextUrl.host || req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost";
+  // Get hostname from nextUrl for Vercel compatibility
+  const hostname = req.nextUrl.hostname;
   
   // Resolve tenant and view mode from domain
   const tenantInfo = resolveTenant(hostname);
@@ -22,8 +22,7 @@ export default auth((req) => {
 
   // Helper to create redirect URL preserving the original host
   const createRedirectUrl = (path: string) => {
-    const protocol = req.nextUrl.protocol?.replace(':', '') || req.headers.get("x-forwarded-proto") || "https";
-    return new URL(path, `${protocol}://${hostname}`);
+    return new URL(path, req.nextUrl.origin);
   };
 
   // Allow API auth routes
@@ -40,19 +39,14 @@ export default auth((req) => {
   if (pathname === "/") {
     // Check if accessing root domain (vertax.top) vs subdomain
     const hostParts = hostname.split(".");
-    const isRootDomain = hostParts.length <= 2 || hostname === BASE_DOMAIN;
+    const isRootDomain = hostname === BASE_DOMAIN || hostname === "www." + BASE_DOMAIN || hostParts.length <= 2;
     
     // Root domain shows landing page, no redirect
     if (isRootDomain) {
       return NextResponse.next();
     }
     
-    // Subdomain: redirect based on view mode
-    if (isDemoMode || req.auth) {
-      // Customer view → customer home, Operations view → dashboard
-      const targetPath = isCustomerView ? "/customer/home" : "/dashboard";
-      return NextResponse.redirect(createRedirectUrl(targetPath));
-    }
+    // Subdomain: always redirect to login
     return NextResponse.redirect(createRedirectUrl("/login"));
   }
   
@@ -60,11 +54,6 @@ export default auth((req) => {
   if (isCustomerView && pathname.startsWith("/dashboard")) {
     const newPath = pathname.replace("/dashboard", "/customer/home");
     return NextResponse.redirect(createRedirectUrl(newPath));
-  }
-
-  // In demo mode, skip auth checks
-  if (isDemoMode) {
-    return NextResponse.next();
   }
 
   const isPublicPath = publicPaths.some((p) => pathname.startsWith(p));
