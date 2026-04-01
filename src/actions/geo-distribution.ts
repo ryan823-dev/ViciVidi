@@ -63,7 +63,7 @@ const CHANNEL_LABELS: Record<GeoChannel, string> = {
   CUSTOM_SITE: 'Custom Site',
 };
 
-export function getChannelLabel(channel: GeoChannel): string {
+export async function getChannelLabel(channel: GeoChannel): Promise<string> {
   return CHANNEL_LABELS[channel] || channel;
 }
 

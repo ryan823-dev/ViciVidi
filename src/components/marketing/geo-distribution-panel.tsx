@@ -25,7 +25,6 @@ import {
   registerDistribution,
   batchRegisterDistribution,
   deleteDistribution,
-  getChannelLabel,
   type GeoDistributionData,
 } from "@/actions/geo-distribution";
 import type { GeoChannel, CitationStatus } from "@/actions/geo-distribution";
