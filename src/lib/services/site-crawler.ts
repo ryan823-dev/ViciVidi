@@ -42,7 +42,12 @@ export interface CrawlProgress {
 
 const DEFAULT_OPTIONS: CrawlOptions = {
   maxPages: 50,
-  excludePaths: ["/admin", "/login", "/cart", "/checkout", "/account", "/wp-admin", "/api"],
+  excludePaths: [
+    "/admin", "/login", "/cart", "/checkout", "/account", "/wp-admin", "/api",
+    "/privacy", "/terms", "/cookie", "/legal", "/gdpr", "/sitemap", "/feed",
+    "/rss", "/tag/", "/tags/", "/author/", "/wp-content", "/cdn-cgi",
+    "/unsubscribe", "/imprint", "/disclaimer",
+  ],
   timeout: 15000,
 };
 

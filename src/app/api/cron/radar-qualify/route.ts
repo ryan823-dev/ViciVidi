@@ -188,6 +188,27 @@ export async function GET(req: NextRequest) {
       `Tokens: ${stats.stage2_tokensUsed}`
     );
 
+    // 发现新 Tier A 候选时发送通知
+    if (stats.stage2_tierA > 0) {
+      // n：取第一个候选的 tenantId
+      const notifyTenantIds = [...new Set(candidates.map(c => c.tenantId))];
+      for (const tid of notifyTenantIds) {
+        try {
+          await (prisma as unknown as Record<string, { create: (args: unknown) => Promise<unknown> }>).notification.create({
+            data: {
+              tenantId: tid,
+              type: 'tier_a_lead',
+              title: `获客雷达：新增 ${stats.stage2_tierA} 个清单 A 级候选`,
+              body: `AI 深度评估发现 ${stats.stage2_tierA} 个高匹配目标企业，建议优先为其生成个性化外联话术。`,
+              actionUrl: '/customer/radar/prospects',
+            },
+          });
+        } catch {
+          // no-op
+        }
+      }
+    }
+
     return NextResponse.json({ ok: true, ...stats });
   } catch (error) {
     console.error('[radar-qualify] Error:', error);

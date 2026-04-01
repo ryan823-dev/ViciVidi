@@ -1,34 +1,28 @@
 /**
  * Content Publishing Pipeline - Types
- * 
- * 基于 Paintcell (tdpaint.com) 真实 Supabase schema 定义。
- * resources_posts 表字段来源：paintcell/src/integrations/supabase/types.ts
+ *
+ * 核心理念：
+ * - ContentPushPayload 是 Vertax 平台标准格式，适配器负责转换为各目标格式
+ * - 每种 siteType 对应一个 PublisherAdapter 实现
+ * - 客户侧（Supabase/Next.js webhook/REST）只需实现约定接口即可
  */
 
-// ==================== Paintcell resources_posts 目标 Schema ====================
+// ==================== Vertax 标准推送 Payload ====================
 
 /**
- * Paintcell resources_posts 表的 category 枚举
- */
-export type PaintcellResourceCategory = "learning-center" | "tools-templates" | "glossary";
-
-/**
- * Paintcell content_status 枚举
- */
-export type PaintcellContentStatus = "draft" | "review" | "published";
-
-/**
- * Edge Function receive-content-push 接受的 payload
- * 对应 paintcell/supabase/functions/receive-content-push/index.ts
+ * Vertax → 目标站 标准内容 Payload
+ * 适配器接收此格式，转换为各目标站所需格式后推送。
  */
 export interface ContentPushPayload {
-  // 必填
+  // 幂等键（必填）
   vertax_asset_id: string;
+
+  // 内容（必填）
   title: string;
   slug: string;
-  body: string;
+  body: string;             // HTML 正文
 
-  // 中文版本
+  // 中文版（可选，双语站使用）
   title_zh?: string;
   body_zh?: string;
   summary_zh?: string;
@@ -36,18 +30,22 @@ export interface ContentPushPayload {
   meta_title_zh?: string;
   meta_description_zh?: string;
 
-  // SEO & 摘要
-  summary?: string;
-  answer_box?: string;
+  // SEO 字段
+  summary?: string;         // 摘要 / excerpt
+  answer_box?: string;      // Featured snippet 候选段落
   meta_title?: string;
   meta_description?: string;
+  keywords?: string[];
 
-  // 分类 & 图片
-  category?: PaintcellResourceCategory;
+  // 媒体 & 分类
+  category?: string;        // 分类 slug，各适配器自行映射
   featured_image_url?: string;
 
-  // 状态 (Edge Function 默认 published，可覆盖为 review)
-  status?: PaintcellContentStatus;
+  // 结构化数据
+  schema_json?: string;     // JSON-LD Schema.org 字符串
+
+  // 发布状态（目标站默认发布）
+  status?: "published" | "draft" | "review";
 }
 
 // ==================== Publisher Adapter 接口 ====================
@@ -56,17 +54,46 @@ export interface PublishResult {
   success: boolean;
   remoteId?: string;
   remoteSlug?: string;
+  remoteUrl?: string;
   error?: string;
 }
 
 export interface PublisherAdapter {
-  /**
-   * 推送内容到目标站点
-   */
   publish(payload: ContentPushPayload): Promise<PublishResult>;
 }
 
-// ==================== Vertax 内容类型 → Paintcell category 映射 ====================
+// ==================== WebsiteConfig siteType ====================
+
+export type SiteType = "supabase" | "nextjs" | "wordpress" | "rest";
+
+// ==================== 工厂配置 ====================
+
+export interface PublisherAdapterConfig {
+  siteType: SiteType | string;
+
+  // Supabase
+  supabaseUrl?: string | null;
+  functionName?: string | null;
+
+  // Nextjs webhook / REST
+  webhookUrl?: string | null;
+
+  // WordPress
+  wpUrl?: string | null;
+  wpUsername?: string | null;
+  wpPassword?: string | null;
+
+  // 通用
+  pushSecret?: string | null;
+  customHeaders?: Record<string, string> | null;
+}
+
+// ==================== Paintcell 专用（向后兼容） ====================
+
+/** @deprecated 用 ContentPushPayload 替代 */
+export type PaintcellResourceCategory = "learning-center" | "tools-templates" | "glossary";
+/** @deprecated */
+export type PaintcellContentStatus = "draft" | "review" | "published";
 
 export const CONTENT_TYPE_CATEGORY_MAP: Record<string, PaintcellResourceCategory> = {
   "article": "learning-center",

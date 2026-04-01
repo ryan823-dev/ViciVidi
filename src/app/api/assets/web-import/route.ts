@@ -6,6 +6,22 @@ import { fetchWebContent } from "@/lib/services/web-scraper";
 import { splitTextIntoChunks } from "@/lib/utils/chunk-utils";
 import crypto from "crypto";
 
+
+// URL patterns that indicate low-value pages (legal/nav noise)
+const LOW_VALUE_URL_PATTERNS = [
+  /\/privacy/i, /\/terms/i, /\/cookie/i, /\/legal/i, /\/gdpr/i,
+  /\/disclaimer/i, /\/imprint/i, /\/unsubscribe/i,
+  /\/sitemap/i, /\/feed/i, /\/rss/i,
+  /\/tag\//i, /\/tags\//i, /\/author\//i,
+  /\/wp-content/i, /\/cdn-cgi/i,
+];
+
+function isLowValuePage(url: string, content: string): boolean {
+  const pathname = new URL(url).pathname.toLowerCase();
+  if (LOW_VALUE_URL_PATTERNS.some((re) => re.test(pathname))) return true;
+  if (content.trim().length < 200) return true;
+  return false;
+}
 export const maxDuration = 300; // 5 minutes for Vercel Pro
 
 export async function POST(req: NextRequest) {
@@ -144,13 +160,13 @@ export async function POST(req: NextRequest) {
               timeout: 15000,
             });
 
-            if (!scraped.success || scraped.content.length < 100) {
+            if (!scraped.success || isLowValuePage(pageUrl, scraped.content)) {
               failed++;
               results.push({
                 url: pageUrl,
                 title: scraped.title || "",
                 status: "failed",
-                error: scraped.error || "Content too short",
+                error: scraped.error || "Content too short or low-value page",
               });
               continue;
             }

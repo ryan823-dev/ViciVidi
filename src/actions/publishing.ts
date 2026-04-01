@@ -2,9 +2,9 @@
 
 /**
  * 内容推送管道 Server Actions
- * 
+ *
  * 负责将 Vertax 营销内容推送到客户独立站（首个客户：tdpaint.com）
- * 
+ *
  * 架构流程：
  * Vertax SeoContent → field-mapper → SupabasePublisherAdapter → Edge Function → resources_posts
  *     ↓                                                              ↑
@@ -14,7 +14,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createPublisherAdapter, mapVertaxToPaintcell } from "@/lib/publishers";
-import type { PaintcellResourceCategory } from "@/lib/publishers";
+import type { PublisherAdapterConfig } from "@/lib/publishers";
 import type { PushRecordData, WebsiteConfigData } from "./publishing.types";
 import { requireDecider } from "@/lib/permissions";
 
@@ -31,19 +31,26 @@ export async function getWebsiteConfig(): Promise<WebsiteConfigData | null> {
   if (!user) return null;
   const tenantId = user!.tenantId as string;
 
-  const config = await prisma.websiteConfig.findUnique({
-    where: { tenantId: tenantId },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config = await (prisma.websiteConfig as any).findFirst({
+    where: { tenantId: tenantId, isActive: true },
+    orderBy: { createdAt: "asc" },
   });
 
   if (!config) return null;
 
   return {
     id: config.id,
+    siteName: config.siteName ?? null,
     url: config.url,
     siteType: config.siteType,
     isActive: config.isActive,
     supabaseUrl: config.supabaseUrl,
     functionName: config.functionName,
+    webhookUrl: config.webhookUrl ?? null,
+    wpUrl: config.wpUrl ?? null,
+    wpUsername: config.wpUsername ?? null,
+    pushSecret: config.pushSecret,
   };
 }
 
@@ -52,7 +59,7 @@ export async function getWebsiteConfig(): Promise<WebsiteConfigData | null> {
 export async function pushContentToWebsite(
   contentId: string,
   options?: {
-    category?: PaintcellResourceCategory;
+    category?: string;
   }
 ): Promise<{ success: boolean; error?: string; pushRecordId?: string }> {
   const session = await auth();
@@ -82,9 +89,11 @@ export async function pushContentToWebsite(
     return { success: false, error: "内容不存在" };
   }
 
-  // 2. 查找网站配置
-  const websiteConfig = await prisma.websiteConfig.findUnique({
-    where: { tenantId: tenantId },
+  // 2. 查找网站配置（取第一个无参数调用时）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const websiteConfig = await (prisma.websiteConfig as any).findFirst({
+    where: { tenantId: tenantId, isActive: true },
+    orderBy: { createdAt: "asc" },
   });
   if (!websiteConfig || !websiteConfig.isActive) {
     return { success: false, error: "未配置或已禁用官网连接" };
@@ -97,8 +106,13 @@ export async function pushContentToWebsite(
       siteType: websiteConfig.siteType,
       supabaseUrl: websiteConfig.supabaseUrl,
       functionName: websiteConfig.functionName,
+      webhookUrl: websiteConfig.webhookUrl ?? null,
+      wpUrl: websiteConfig.wpUrl ?? null,
+      wpUsername: websiteConfig.wpUsername ?? null,
+      wpPassword: websiteConfig.wpPassword ?? null,
       pushSecret: websiteConfig.pushSecret,
-    });
+      customHeaders: (websiteConfig.customHeaders as Record<string, string> | null) ?? null,
+    } as PublisherAdapterConfig);
   } catch (err) {
     return {
       success: false,
@@ -121,7 +135,7 @@ export async function pushContentToWebsite(
       categorySlug: content.category.slug,
     },
     {
-      category: options?.category,
+      category: options?.category as never,
       status: "published", // 内容审核在 Vertax 完成，推到对面直接发布
     }
   );
@@ -133,8 +147,13 @@ export async function pushContentToWebsite(
   // 6. 执行推送
   const result = await adapter.publish(payload);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contentAny = content as any;
+  const contentVersion: number | null = contentAny.version ?? null;
+
   // 7. 创建/更新 PushRecord (UPSERT)
-  const pushRecord = await prisma.pushRecord.upsert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pushRecord = await (prisma.pushRecord as any).upsert({
     where: {
       contentId_websiteConfigId: {
         contentId: content.id,
@@ -152,6 +171,8 @@ export async function pushContentToWebsite(
         ? `${websiteConfig.url || ""}/en/resources/articles/${result.remoteSlug}`
         : null,
       pushPayload: JSON.parse(JSON.stringify(payload)),
+      contentVersion,
+      contentSnapshot: { title: content.title, slug: content.slug, excerpt: content.excerpt, keywords: content.keywords },
       pushedAt: now,
       timeoutAt,
       retryCount: 0,
@@ -165,6 +186,8 @@ export async function pushContentToWebsite(
         ? `${websiteConfig.url || ""}/en/resources/articles/${result.remoteSlug}`
         : null,
       pushPayload: JSON.parse(JSON.stringify(payload)),
+      contentVersion,
+      contentSnapshot: { title: content.title, slug: content.slug, excerpt: content.excerpt, keywords: content.keywords },
       pushedAt: now,
       timeoutAt,
       retryCount: { increment: 1 },
@@ -212,20 +235,26 @@ export async function getPushRecords(contentId?: string): Promise<PushRecordData
     take: 50,
   });
 
-  return records.map((r) => ({
-    id: r.id,
-    contentId: r.contentId,
-    contentTitle: r.content.title,
-    status: r.status,
-    remoteId: r.remoteId,
-    remoteSlug: r.remoteSlug,
-    targetUrl: r.targetUrl,
-    pushedAt: r.pushedAt,
-    timeoutAt: r.timeoutAt,
-    confirmedAt: r.confirmedAt,
-    retryCount: r.retryCount,
-    lastError: r.lastError,
-  }));
+  return records.map((r) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rAny = r as any;
+    return {
+      id: r.id,
+      contentId: r.contentId,
+      contentTitle: r.content.title,
+      status: r.status,
+      remoteId: r.remoteId,
+      remoteSlug: r.remoteSlug,
+      targetUrl: r.targetUrl,
+      pushedAt: r.pushedAt,
+      timeoutAt: r.timeoutAt,
+      confirmedAt: r.confirmedAt,
+      retryCount: r.retryCount,
+      lastError: r.lastError,
+      contentVersion: rAny.contentVersion ?? null,
+      contentSnapshot: rAny.contentSnapshot ?? null,
+    };
+  });
 }
 
 // ===================== 手动确认推送 =====================
@@ -260,8 +289,8 @@ export async function confirmPushRecord(
     });
     return { success: true };
   } catch (error) {
-    console.error('[confirmPush] Error:', error);
-    return { success: false, error: '确认失败' };
+    console.error("[confirmPush] Error:", error);
+    return { success: false, error: "确认失败" };
   }
 }
 

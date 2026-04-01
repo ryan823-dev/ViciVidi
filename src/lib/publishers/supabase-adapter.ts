@@ -11,7 +11,10 @@
  * - 返回 { success, id, slug }
  */
 
-import type { ContentPushPayload, PublishResult, PublisherAdapter } from "./types";
+import type { ContentPushPayload, PublishResult, PublisherAdapter, PublisherAdapterConfig } from "./types";
+import { WebhookPublisherAdapter } from "./webhook-adapter";
+import { RestPublisherAdapter } from "./rest-adapter";
+import { WordPressPublisherAdapter } from "./wordpress-adapter";
 
 interface SupabasePublisherConfig {
   /** Supabase 项目 URL, e.g. "https://xxx.supabase.co" */
@@ -75,25 +78,61 @@ export class SupabasePublisherAdapter implements PublisherAdapter {
 }
 
 /**
- * 从 WebsiteConfig 创建 PublisherAdapter
+ * 工厂函数：根据 siteType 创建对应 PublisherAdapter
+ *
+ * siteType 路由：
+ *   supabase   → SupabasePublisherAdapter  (POST to Supabase Edge Function)
+ *   nextjs     → WebhookPublisherAdapter   (POST + HMAC-SHA256, 自研 Next.js 站)
+ *   wordpress  → WordPressPublisherAdapter (WP REST API v2)
+ *   rest       → RestPublisherAdapter      (通用 Bearer token REST)
  */
-export function createPublisherAdapter(config: {
-  siteType: string;
-  supabaseUrl: string | null;
-  functionName: string | null;
-  pushSecret: string | null;
-}): PublisherAdapter {
-  if (config.siteType !== "supabase") {
-    throw new Error(`Unsupported site type: ${config.siteType}. Currently only 'supabase' is supported.`);
-  }
+export function createPublisherAdapter(config: PublisherAdapterConfig): PublisherAdapter {
+  switch (config.siteType) {
+    case "supabase": {
+      if (!config.supabaseUrl || !config.functionName || !config.pushSecret) {
+        throw new Error("Supabase adapter requires: supabaseUrl, functionName, pushSecret");
+      }
+      return new SupabasePublisherAdapter({
+        supabaseUrl: config.supabaseUrl,
+        functionName: config.functionName,
+        pushSecret: config.pushSecret,
+      });
+    }
 
-  if (!config.supabaseUrl || !config.functionName || !config.pushSecret) {
-    throw new Error("Missing Supabase configuration: supabaseUrl, functionName, and pushSecret are required.");
-  }
+    case "nextjs": {
+      if (!config.webhookUrl || !config.pushSecret) {
+        throw new Error("Next.js webhook adapter requires: webhookUrl, pushSecret");
+      }
+      return new WebhookPublisherAdapter({
+        webhookUrl: config.webhookUrl,
+        pushSecret: config.pushSecret,
+        customHeaders: config.customHeaders ?? undefined,
+      });
+    }
 
-  return new SupabasePublisherAdapter({
-    supabaseUrl: config.supabaseUrl,
-    functionName: config.functionName,
-    pushSecret: config.pushSecret,
-  });
+    case "wordpress": {
+      if (!config.wpUrl || !config.wpUsername || !config.wpPassword) {
+        throw new Error("WordPress adapter requires: wpUrl, wpUsername, wpPassword");
+      }
+      return new WordPressPublisherAdapter({
+        siteUrl: config.wpUrl,
+        username: config.wpUsername,
+        password: config.wpPassword,
+      });
+    }
+
+    case "rest": {
+      if (!config.webhookUrl) {
+        throw new Error("REST adapter requires: webhookUrl");
+      }
+      return new RestPublisherAdapter({
+        endpointUrl: config.webhookUrl,
+        pushSecret: config.pushSecret ?? undefined,
+        customHeaders: config.customHeaders ?? undefined,
+      });
+    }
+
+    default:
+      throw new Error(`Unsupported siteType: "${config.siteType}". Valid values: supabase | nextjs | wordpress | rest`);
+  }
 }

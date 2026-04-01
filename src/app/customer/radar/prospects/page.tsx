@@ -25,6 +25,7 @@ import {
   Target,
   Star,
   Clock,
+  BookmarkPlus,
 } from 'lucide-react';
 import {
   getProspectCompaniesV2,
@@ -32,6 +33,7 @@ import {
 } from '@/actions/radar-v2';
 import { executeSkill } from '@/actions/skills';
 import { SKILL_NAMES } from '@/lib/skills/registry';
+import { saveContent } from '@/actions/marketing';
 
 // ==================== 类型 ====================
 
@@ -68,6 +70,8 @@ export default function RadarProspectsPage() {
   const [outreachPack, setOutreachPack] = useState<OutreachPackContent | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'outreach'>('info');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedContentId, setSavedContentId] = useState<string | null>(null);
   
   // 筛选条件
   const [filters, setFilters] = useState({
@@ -178,6 +182,39 @@ export default function RadarProspectsPage() {
       </div>
     );
   }
+
+  const handleSaveToLibrary = async () => {
+    if (!outreachPack || !selectedCompany) return;
+    setIsSaving(true);
+    try {
+      const pack = outreachPack.outreachPack;
+      const emailBodies = pack.emails.map((e: { subject: string; body: string }, i: number) =>
+        `### Email ${i + 1}: ${e.subject}\n\n${e.body}`
+      ).join('\n\n---\n\n');
+      const contentText = [
+        `# Outreach Pack: ${selectedCompany.name}`,
+        `**Tier:** ${pack.forTier}  |  **Persona:** ${pack.forPersona}`,
+        '\n## Opening Lines',
+        ...pack.openings.map((o: { text: string }, i: number) => `${i + 1}. ${o.text}`),
+        '\n## Emails',
+        emailBodies,
+        pack.whatsapps.length ? '\n## WhatsApp Messages' : '',
+        ...pack.whatsapps.map((w: { text: string }, i: number) => `${i + 1}. ${w.text}`),
+        pack.warnings.length ? '\n## Notes\n' + pack.warnings.map((w: string) => `- ${w}`).join('\n') : '',
+      ].filter(Boolean).join('\n');
+      const saved = await saveContent({
+        title: `Outreach: ${selectedCompany.name}`,
+        content: contentText,
+        keywords: [selectedCompany.name, pack.forTier, 'outreach'],
+        status: 'draft',
+      });
+      setSavedContentId(saved.id);
+    } catch (err) {
+      console.error('Save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -660,6 +697,27 @@ export default function RadarProspectsPage() {
                           </ul>
                         </div>
                       )}
+                      {/* 保存到内容库 */}
+                      <div className="mt-4 pt-4 border-t border-[#30405A] flex justify-end">
+                        {savedContentId ? (
+                          <Link
+                            href={`/customer/marketing/contents/${savedContentId}`}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 rounded-xl text-sm font-medium hover:bg-emerald-600/30 transition-colors"
+                          >
+                            <Check size={14} />
+                            已保存—点击查看
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={handleSaveToLibrary}
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#30405A] text-slate-300 rounded-xl text-sm font-medium hover:bg-[#3A4F70] transition-colors disabled:opacity-50"
+                          >
+                            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <BookmarkPlus size={14} />}
+                            保存到内容库
+                          </button>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <div className="relative rounded-2xl overflow-hidden p-12 text-center" style={{ background: 'linear-gradient(135deg, #0B1220 0%, #0A1018 60%, #0D1525 100%)', boxShadow: '0 8px 32px -8px rgba(0,0,0,0.45)' }}>

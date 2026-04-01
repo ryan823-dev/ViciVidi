@@ -824,6 +824,49 @@ export default function RadarCandidatesPage() {
                   </div>
                 )}
 
+                {/* AI 评估依据 */}
+                {(() => {
+                  const rel = selectedCandidate.aiRelevance as {
+                    tier?: string;
+                    matchReasons?: string[];
+                    approachAngle?: string;
+                    signalScores?: { overallScore?: number };
+                  } | null;
+                  if (!rel?.matchReasons?.length) return null;
+                  return (
+                    <div className="bg-[#F7F3E8] rounded-2xl border border-[#E8E0D0] p-5">
+                      <h4 className="flex items-center gap-2 text-sm font-bold text-[#0B1B2B] mb-3">
+                        <Target size={14} className="text-[#D4AF37]" />
+                        AI 评估依据
+                        {rel.tier && (
+                          <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            rel.tier === 'A' ? 'bg-emerald-100 text-emerald-700' :
+                            rel.tier === 'B' ? 'bg-blue-100 text-blue-700' :
+                            'bg-slate-100 text-slate-500'
+                          }`}>Tier {rel.tier}</span>
+                        )}
+                      </h4>
+                      <div className="space-y-2 mb-3">
+                        {rel.matchReasons.map((reason, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
+                            <CheckCircle2 size={12} className="text-emerald-500 mt-0.5 shrink-0" />
+                            <span>{reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {rel.approachAngle && (
+                        <div className="bg-[#F0EBD8] rounded-xl p-3">
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-[#0B1B2B] mb-1">
+                            <Zap size={11} className="text-[#D4AF37]" />
+                            推荐接触角度
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{rel.approachAngle}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* AI背调模块 */}
                 <div className="bg-[#F7F3E8] rounded-2xl border border-[#E8E0D0] p-5">
                   <div className="flex items-center justify-between mb-3">

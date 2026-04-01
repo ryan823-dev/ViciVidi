@@ -222,7 +222,6 @@ export async function analyzeAssets(
   });
 
   revalidatePath("/customer/knowledge/company");
-
   return {
     id: profile.id,
     companyName: profile.companyName,
@@ -304,6 +303,20 @@ export async function updateCompanyProfile(
   });
 
   revalidatePath("/customer/knowledge/company");
+  revalidatePath("/customer/radar");
+
+  // Sync targetIndustries -> RadarSearchProfile.industryCodes (non-blocking)
+  if (data.targetIndustries !== undefined) {
+    const industries = (data.targetIndustries as Array<{ name?: string } | string>)
+      .map((i) => (typeof i === 'string' ? i : i.name ?? ''))
+      .filter(Boolean);
+    if (industries.length) {
+      (db as any).radarSearchProfile.updateMany({
+        where: { tenantId: session.user.tenantId, industryCodes: { isEmpty: true } },
+        data: { industryCodes: industries },
+      }).catch(() => { /* non-critical */ });
+    }
+  }
 
   return {
     id: profile.id,

@@ -23,6 +23,8 @@ import {
   Heart,
   Share2,
   Plus,
+  Library,
+  CalendarClock,
 } from 'lucide-react';
 import {
   getSocialPosts,
@@ -32,6 +34,7 @@ import {
   deleteSocialPost,
   publishSocialPost,
 } from '@/actions/social';
+import { getContentPieces } from '@/actions/contents';
 
 type ViewMode = 'list' | 'create';
 
@@ -80,10 +83,15 @@ export default function SocialPage() {
 
   // Create post state
   const [topic, setTopic] = useState('');
+  const [inputMode, setInputMode] = useState<'manual' | 'library'>('manual');
+  const [contentItems, setContentItems] = useState<Array<{ id: string; title: string; excerpt?: string | null }>>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['linkedin', 'x']);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContents, setGeneratedContents] = useState<Record<string, string>>({});
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishMode, setPublishMode] = useState<'now' | 'scheduled'>('now');
+  const [scheduledAt, setScheduledAt] = useState('');
 
   // 加载数据
   const loadData = useCallback(async () => {
@@ -122,6 +130,19 @@ export default function SocialPage() {
   };
 
   // 生成内容
+  const loadLibrary = async () => {
+    if (contentItems.length > 0) return;
+    setLoadingLibrary(true);
+    try {
+      const result = await getContentPieces({});
+      setContentItems(result.slice(0, 30).map(i => ({ id: i.id, title: i.title, excerpt: i.excerpt })));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingLibrary(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!topic.trim() || selectedPlatforms.length === 0) return;
     
@@ -152,13 +173,15 @@ export default function SocialPage() {
         content,
       }));
 
+      const isScheduling = publishMode === 'scheduled' && scheduledAt;
       const post = await createSocialPost({
         title: topic,
-        status: publish ? 'draft' : 'draft',
+        status: 'draft',
         versions,
+        scheduledAt: isScheduling ? new Date(scheduledAt) : undefined,
       });
 
-      if (publish && post.id) {
+      if (publish && !isScheduling && post.id) {
         setIsPublishing(true);
         await publishSocialPost(post.id);
         setIsPublishing(false);
@@ -168,6 +191,8 @@ export default function SocialPage() {
       setViewMode('list');
       setTopic('');
       setGeneratedContents({});
+      setPublishMode('now');
+      setScheduledAt('');
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败');
@@ -319,15 +344,62 @@ export default function SocialPage() {
             </h3>
             
             <div className="space-y-4">
+              {/* 输入模式 Tab */}
+              <div className="flex rounded-lg border border-[#E8E0D0] overflow-hidden mb-1">
+                <button
+                  onClick={() => setInputMode('manual')}
+                  className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
+                    inputMode === 'manual' ? 'bg-[#0B1220] text-[#D4AF37]' : 'text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  手动输入
+                </button>
+                <button
+                  onClick={() => { setInputMode('library'); loadLibrary(); }}
+                  className={`flex-1 py-1.5 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+                    inputMode === 'library' ? 'bg-[#0B1220] text-[#D4AF37]' : 'text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  <Library size={11} />
+                  从内容库导入
+                </button>
+              </div>
               <div>
-                <label className="text-xs text-slate-500 mb-1 block">输入内容主题</label>
-                <textarea
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="例如：发布新产品上线公告、分享行业洞察、公司活动回顾..."
-                  rows={3}
-                  className="w-full px-4 py-2.5 border border-[#E8E0D0] rounded-xl text-sm focus:outline-none focus:border-[#D4AF37] resize-none bg-[#FFFCF7]"
-                />
+                {inputMode === 'manual' ? (
+                  <textarea
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="例如：发布新产品上线公告、分享行业洞察、公司活动回顾..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 border border-[#E8E0D0] rounded-xl text-sm focus:outline-none focus:border-[#D4AF37] resize-none bg-[#FFFCF7]"
+                  />
+                ) : (
+                  <div className="space-y-1 max-h-[140px] overflow-y-auto">
+                    {loadingLibrary ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 size={16} className="animate-spin text-slate-400" />
+                      </div>
+                    ) : contentItems.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">暂无内容</p>
+                    ) : (
+                      contentItems.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setTopic(item.excerpt ? `${item.title}\n\n${item.excerpt}` : item.title);
+                            setInputMode('manual');
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg border border-[#E8E0D0] hover:border-[#D4AF37] hover:bg-[#FFFDF5] transition-colors"
+                        >
+                          <p className="text-xs font-medium text-[#0B1B2B] truncate">{item.title}</p>
+                          {item.excerpt && (
+                            <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{item.excerpt}</p>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -432,24 +504,51 @@ export default function SocialPage() {
                     <Edit2 size={14} />
                     保存草稿
                   </button>
-                  <button
-                    onClick={() => handleSavePost(true)}
-                    disabled={isPublishing || accounts.length === 0}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: '#D4AF37', color: '#0B1220', boxShadow: '0 4px 16px -2px rgba(212,175,55,0.35)' }}
-                  >
-                    {isPublishing ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        发布中...
-                      </>
-                    ) : (
-                      <>
-                        <Send size={14} />
+                  <div className="flex-1 space-y-2">
+                    {/* 发布模式切换 */}
+                    <div className="flex rounded-lg overflow-hidden border border-[#D4AF37]/40">
+                      <button
+                        onClick={() => setPublishMode('now')}
+                        className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
+                          publishMode === 'now' ? 'bg-[#D4AF37] text-[#0B1220]' : 'text-slate-400 hover:bg-slate-800/30'
+                        }`}
+                      >
                         立即发布
-                      </>
+                      </button>
+                      <button
+                        onClick={() => setPublishMode('scheduled')}
+                        className={`flex-1 py-1.5 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+                          publishMode === 'scheduled' ? 'bg-[#D4AF37] text-[#0B1220]' : 'text-slate-400 hover:bg-slate-800/30'
+                        }`}
+                      >
+                        <CalendarClock size={11} />
+                        定时发布
+                      </button>
+                    </div>
+                    {publishMode === 'scheduled' && (
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={(e) => setScheduledAt(e.target.value)}
+                        min={new Date(Date.now() + 5 * 60000).toISOString().slice(0, 16)}
+                        className="w-full px-3 py-2 border border-[#D4AF37]/40 rounded-xl text-xs bg-[#0B1220]/60 text-slate-200 focus:outline-none focus:border-[#D4AF37]"
+                      />
                     )}
-                  </button>
+                    <button
+                      onClick={() => handleSavePost(publishMode === 'now')}
+                      disabled={isPublishing || accounts.length === 0 || (publishMode === 'scheduled' && !scheduledAt)}
+                      className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                      style={{ background: '#D4AF37', color: '#0B1220', boxShadow: '0 4px 16px -2px rgba(212,175,55,0.35)' }}
+                    >
+                      {isPublishing ? (
+                        <><Loader2 size={14} className="animate-spin" />发布中...</>
+                      ) : publishMode === 'scheduled' ? (
+                        <><CalendarClock size={14} />加入调度</>
+                      ) : (
+                        <><Send size={14} />立即发布</>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (

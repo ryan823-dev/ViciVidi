@@ -158,13 +158,34 @@ export async function getPendingActions(): Promise<PendingAction[]> {
   const tenantId = user.tenantId;
   const actions: PendingAction[] = [];
 
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
   // Check for critical issues first
-  const [profile, socialAccounts, failedPosts, highIntentLeads, draftContents] = await Promise.all([
+  const [profile, socialAccounts, failedPosts, highIntentLeads, draftContents, qualifiedLeads, scheduledSoon] = await Promise.all([
     prisma.companyProfile.findUnique({ where: { tenantId } }),
     prisma.socialAccount.count({ where: { tenantId, isActive: true } }),
     prisma.socialPost.count({ where: { tenantId, deletedAt: null, status: 'failed' } }),
     prisma.lead.count({ where: { tenantId, deletedAt: null, priority: 'high', status: 'new' } }),
     prisma.seoContent.count({ where: { tenantId, deletedAt: null, status: 'draft' } }),
+    // Radar: QUALIFIED Tier A/B candidates not yet imported
+    (prisma as unknown as Record<string, { count: (args: unknown) => Promise<number> }>).radarCandidate.count({
+      where: {
+        tenantId,
+        status: 'QUALIFIED',
+        qualifyTier: { in: ['A', 'B'] },
+        importedAt: null,
+      },
+    }).catch(() => 0),
+    // Social: scheduled posts firing in next 24h
+    prisma.socialPost.count({
+      where: {
+        tenantId,
+        deletedAt: null,
+        status: 'scheduled',
+        scheduledAt: { gte: now, lte: in24h },
+      },
+    }),
   ]);
 
   // P0 - Blocked issues
@@ -213,6 +234,17 @@ export async function getPendingActions(): Promise<PendingAction[]> {
     });
   }
 
+  if (qualifiedLeads > 0) {
+    actions.push({
+      id: 'radar-qualified',
+      priority: 'P1',
+      title: `${qualifiedLeads} 个 Tier A/B 候选待外联`,
+      module: '获客雷达',
+      action: '生成外联话术',
+      actionLink: '/customer/radar/prospects',
+    });
+  }
+
   // P2 - Normal priority
   if (draftContents > 0) {
     actions.push({
@@ -221,11 +253,22 @@ export async function getPendingActions(): Promise<PendingAction[]> {
       title: `${draftContents} 篇内容待发布`,
       module: '增长系统',
       action: '发布内容',
-      actionLink: '/customer/marketing',
+      actionLink: '/customer/marketing/contents',
     });
   }
 
-  return actions.slice(0, 5); // Limit to 5 actions
+  if (scheduledSoon > 0) {
+    actions.push({
+      id: 'social-scheduled',
+      priority: 'P2',
+      title: `${scheduledSoon} 条帖子即将定时发布（24h内）`,
+      module: '声量枢纽',
+      action: '查看计划',
+      actionLink: '/customer/social',
+    });
+  }
+
+  return actions.slice(0, 6); // Limit to 6 actions
 }
 
 // ===================== Get Tenant Info =====================

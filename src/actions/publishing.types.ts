@@ -15,13 +15,20 @@ export type PushRecordData = {
   confirmedAt: Date | null;
   retryCount: number;
   lastError: string | null;
+  contentVersion: number | null;
+  contentSnapshot: { title: string; slug: string; excerpt: string | null; keywords: string[] } | null;
 };
 
 export type WebsiteConfigData = {
   id: string;
+  siteName: string | null;
   url: string | null;
   siteType: string;
   isActive: boolean;
   supabaseUrl: string | null;
   functionName: string | null;
+  webhookUrl: string | null;
+  wpUrl: string | null;
+  wpUsername: string | null;
+  pushSecret: string | null;
 };

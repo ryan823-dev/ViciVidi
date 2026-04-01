@@ -30,8 +30,9 @@ model Tenant {
   leads          Lead[]
   campaigns      Campaign[]
   categories     ContentCategory[]
-  websiteConfig  WebsiteConfig?
+  websiteConfigs WebsiteConfig[]
   activities     Activity[]
+  notifications  Notification[]
   assetFolders      AssetFolder[]
   assets            Asset[]
   apiKeys           ApiKey[]
@@ -50,18 +51,24 @@ model Tenant {
 
 model WebsiteConfig {
   id              String   @id @default(cuid())  
-  tenantId        String   @unique
+  tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  siteName        String?  // 目标站名称（多站区分）
   url             String?
   apiKey          String?
   publishEndpoint String?
   seoDefaults     Json     @default("{}")
 
   // === Publishing Pipeline 扩展 ===
-  siteType        String   @default("supabase") // supabase | wordpress | custom
-  supabaseUrl     String?  // e.g. "https://xxx.supabase.co"
-  functionName    String?  // e.g. "receive-content-push"
-  pushSecret      String?  // 加密存储的 shared secret
+  siteType        String   @default("supabase") // supabase | nextjs | wordpress | rest
+  supabaseUrl     String?  // [supabase] e.g. "https://xxx.supabase.co"
+  functionName    String?  // [supabase] e.g. "receive-content-push"
+  webhookUrl      String?  // [nextjs | rest] 客户站接收 endpoint
+  wpUrl           String?  // [wordpress] WP 站点根 URL
+  wpUsername      String?  // [wordpress] WP 用户名
+  wpPassword      String?  // [wordpress] Application Password
+  pushSecret      String?  // 共享密钥（HMAC签名 / Bearer token）
+  customHeaders   Json?    // 自定义请求头（rest/nextjs 用）
   fieldMapping    Json     @default("{}") // Vertax → 目标站字段映射
   approvalTimeoutHours Int @default(24)
   isActive        Boolean  @default(true)
@@ -70,6 +77,8 @@ model WebsiteConfig {
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 // ==================== CONTENT PUSH PIPELINE ====================
@@ -102,6 +111,8 @@ model PushRecord {
 
   // 字段快照（推送时的映射结果）
   pushPayload     Json?      // 实际发送的 payload 快照
+  contentVersion  Int?       // 推送时对应的 SeoContent.version
+  contentSnapshot Json?      // { title, slug, excerpt, keywords } 快照
 
   // 时间追踪
   pushedAt        DateTime   @default(now())
@@ -335,6 +346,7 @@ model SeoContent {
   status          String          @default("draft")
   publishedAt     DateTime?
   scheduledAt     DateTime?
+  version         Int             @default(1)  // 内容版本号，每次保存自动 +1
   aiMetadata      Json            @default("{}")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -1061,6 +1073,7 @@ model RadarCandidate {
   
   // 联系人字段（candidateType=CONTACT）
   contactRole     String?
+  linkedInUrl     String?  // 公司 LinkedIn 页\uff08Exa 丰富化写入\uff09
   linkedCandidateId String? // 关联到哪个公司候选
   
   // ICP 匹配（核心）
@@ -1644,4 +1657,24 @@ model GeoDistributionRecord {
   @@index([tenantId])
   @@index([citationStatus])
   @@map("geo_distribution_records")
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type      String    // "tier_a_lead" | "geo_citation" | "publish_failed" | "system"
+  title     String
+  body      String
+  actionUrl String?
+  readAt    DateTime?
+
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, readAt])
+  @@map("notifications")
 }

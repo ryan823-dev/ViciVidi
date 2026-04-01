@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Shield, Eye, LayoutList, Zap } from 'lucide-react';
 import { useRoleContext } from '@/contexts/role-context';
 import { DISPLAY_MODES } from '@/lib/constants';
+import { NotificationBell } from './notification-bell';
 
 interface CustomerHeaderProps {
   tenantName?: string;
@@ -74,8 +75,9 @@ export function CustomerHeader({
         </div>
       </div>
 
-      {/* 右侧：模式切换 + 身份胶囊 */}
+      {/* 右侧：通知 + 模式切换 + 身份胶囊 */}
       <div className="flex items-center gap-2.5">
+        <NotificationBell />
         {/* 显示模式切换 */}
         <div
           className="flex items-center rounded-lg overflow-hidden"

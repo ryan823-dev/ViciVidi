@@ -8,6 +8,8 @@ import { logActivity, ACTIVITY_ACTIONS, EVENT_CATEGORIES } from "@/lib/utils/act
 import { createVersion } from "@/actions/versions";
 import type { Prisma } from "@prisma/client";
 import { runSeoGeoPipeline } from "@/lib/marketing/seo-geo-pipeline";
+import { batchRegisterDistribution } from "@/actions/geo-distribution";
+import type { GeoChannel } from "@/actions/geo-distribution";
 
 // ==================== Types ====================
 
@@ -283,6 +285,23 @@ export async function updateContentPiece(id: string, input: UpdateContentInput):
       outline: updated.outline,
       evidenceRefs: updated.evidenceRefs,
     }, { generatedBy: "human" });
+  }
+
+  // Bump version on meaningful edits (prisma client may not know new field until migration runs)
+  if (input.title !== undefined || input.content !== undefined || input.keywords !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma.seoContent as any).update({
+      where: { id, tenantId: session.user.tenantId },
+      data: { version: { increment: 1 } },
+    }).catch(() => {});
+  }
+
+  // Auto-push when content is published
+  if (input.status === "published") {
+    const { pushContentToWebsite } = await import("./publishing");
+    pushContentToWebsite(id).catch((err: unknown) =>
+      console.warn("[auto-push] Failed for", id, err)
+    );
   }
 
   // Activity log
@@ -672,6 +691,23 @@ ${pkg.faqMarkdown}` : '');
       hasGeoVersion: !!pkg.geoVersion,
     },
   });
+
+  // Auto-register GEO distribution for all default AI channels
+  if (pkg.geoVersion) {
+    const defaultChannels: GeoChannel[] = [
+      'CHATGPT', 'PERPLEXITY', 'CLAUDE', 'GEMINI', 'BING_COPILOT',
+    ];
+    try {
+      await batchRegisterDistribution({
+        contentId: seoContent.id,
+        channels: defaultChannels,
+        queryKeywords: [pkg.primaryKeyword, ...pkg.supportingKeywords.slice(0, 3)],
+      });
+    } catch (err) {
+      // Non-fatal: log but don't fail the pipeline
+      console.warn('[seo-geo-pipeline] Auto-register GEO distribution failed:', err);
+    }
+  }
 
   revalidatePath("/customer/marketing/contents");
   revalidatePath("/customer/marketing/briefs");

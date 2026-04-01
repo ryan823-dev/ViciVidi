@@ -2,7 +2,7 @@
 // 生成时间: 2026-03-19T03:22:22.028Z
 // 规则数量: 0
 
-const productRedirects = [
+const productRedirects: { source: string; destination: string; permanent: boolean }[] = [
 
 ];
 

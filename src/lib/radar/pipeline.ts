@@ -83,11 +83,11 @@ const STATS_WINDOW_DAYS = 7;
 
 /** 步骤定义 */
 const STEP_CONFIG = [
-  { key: 'targeting', label: '画像与规则', href: '/c/knowledge/profiles' },
-  { key: 'sources', label: '数据源与渠道', href: '/c/radar/channels' },
-  { key: 'scheduler', label: '持续扫描运行', href: '/c/radar/tasks' },
-  { key: 'qualify', label: '候选分层', href: '/c/radar/candidates' },
-  { key: 'import', label: '导入线索与外联', href: '/c/radar/prospects' },
+  { key: 'targeting', label: '画像与规则', href: '/customer/knowledge/profiles' },
+  { key: 'sources', label: '数据源与渠道', href: '/customer/radar/channels' },
+  { key: 'scheduler', label: '持续扫描运行', href: '/customer/radar/tasks' },
+  { key: 'qualify', label: '候选分层', href: '/customer/radar/candidates' },
+  { key: 'import', label: '导入线索与外联', href: '/customer/radar/prospects' },
 ] as const;
 
 // ============================================
@@ -112,6 +112,7 @@ export async function getRadarPipelineStatus(tenantId: string): Promise<RadarPip
     companyProfile,
     personasCount,
     recentErrors,
+    outreachPack7d,
   ] = await Promise.all([
     // 搜索配置统计
     getProfilesStats(tenantId),
@@ -154,6 +155,10 @@ export async function getRadarPipelineStatus(tenantId: string): Promise<RadarPip
     }),
     // 近期扫描错误
     getRecentErrors(tenantId),
+    // 7天内发送的外联邮件数（OutreachRecord）
+    prisma.outreachRecord.count({
+      where: { tenantId, createdAt: { gte: sevenDaysAgo } },
+    }),
   ]);
 
   // 计算 TargetingSpec 状态
@@ -197,7 +202,7 @@ export async function getRadarPipelineStatus(tenantId: string): Promise<RadarPip
     targetingSpecExists: hasTargetingSpec,
     targetingSpecFresh,
     targetingSpecUpdatedAt: companyProfile?.updatedAt || null,
-    outreachPackGenerated7d: 0, // TODO: 实现 OutreachPack 统计
+    outreachPackGenerated7d: outreachPack7d,
     lastUpdatedAt: lastScanAt,
   };
 
@@ -503,13 +508,13 @@ function getPrimaryCTA(
       if (step.status === 'BLOCKED') {
         return {
           label: '生成买家画像',
-          href: '/c/knowledge/profiles',
+          href: '/customer/knowledge/profiles',
           disabled: false,
         };
       }
       return {
         label: '同步最新画像',
-        href: '/c/knowledge/profiles',
+        href: '/customer/knowledge/profiles',
         disabled: false,
       };
       
@@ -517,14 +522,14 @@ function getPrimaryCTA(
       if (counts.profilesActiveCount === 0) {
         return {
           label: '创建搜索配置',
-          href: '/c/radar/tasks',
+          href: '/customer/radar/tasks',
           disabled: step.status === 'BLOCKED',
           disabledReason: step.blocker,
         };
       }
       return {
         label: '配置数据源',
-        href: '/c/radar/channels',
+        href: '/customer/radar/channels',
         disabled: step.status === 'BLOCKED',
         disabledReason: step.blocker,
       };
@@ -532,7 +537,7 @@ function getPrimaryCTA(
     case 'scheduler':
       return {
         label: '启动扫描',
-        href: '/c/radar/tasks',
+        href: '/customer/radar/tasks',
         disabled: step.status === 'BLOCKED',
         disabledReason: step.blocker,
       };
@@ -541,13 +546,13 @@ function getPrimaryCTA(
       if (counts.pendingReviewCount > 0) {
         return {
           label: `分层候选 (${counts.pendingReviewCount})`,
-          href: '/c/radar/candidates?status=NEW',
+          href: '/customer/radar/candidates?status=NEW',
           disabled: false,
         };
       }
       return {
         label: '查看候选池',
-        href: '/c/radar/candidates',
+        href: '/customer/radar/candidates',
         disabled: step.status === 'BLOCKED',
         disabledReason: step.blocker,
       };
@@ -556,13 +561,13 @@ function getPrimaryCTA(
       if (counts.candidatesQualifiedAB7d > 0) {
         return {
           label: `导入线索 (${counts.candidatesQualifiedAB7d})`,
-          href: '/c/radar/candidates?status=QUALIFIED&tier=A,B',
+          href: '/customer/radar/candidates?status=QUALIFIED&tier=A,B',
           disabled: false,
         };
       }
       return {
         label: '查看线索库',
-        href: '/c/radar/prospects',
+        href: '/customer/radar/prospects',
         disabled: step.status === 'BLOCKED',
         disabledReason: step.blocker,
       };
@@ -570,7 +575,7 @@ function getPrimaryCTA(
     default:
       return {
         label: '开始获客',
-        href: '/c/radar',
+        href: '/customer/radar',
         disabled: false,
       };
   }

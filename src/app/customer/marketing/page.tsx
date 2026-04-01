@@ -464,77 +464,16 @@ export default function MarketingPage() {
                 </div>
               )}
 
-              {/* AI文案助手 */}
+              {/* 跳转 Brief 流程 */}
               {selectedKeyword && (
-                <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-purple-700">AI文案助手</p>
-                      <p className="text-[10px] text-purple-500">生成营销文案、产品描述</p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        setIsGeneratingContent(true);
-                        try {
-                          const res = await fetch('/api/marketing/copywriting', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              type: contentType === 'article' ? 'landing_page' : contentType === 'product' ? 'product_page' : 'feature_page',
-                              companyName: '涂豆科技',
-                              industry: '涂装设备',
-                              targetAudience: '制造业采购决策者',
-                              mainProblem: '涂装效率低、质量不稳定',
-                              solution: '自动化涂装解决方案',
-                              keyBenefits: ['提升30%产能', '降低VOC排放50%', '投资回报<18个月'],
-                              differentiators: ['自主研发', '一站式服务', '10年行业经验'],
-                              proofPoints: ['服务500+客户', 'ISO9001认证', '专利技术'],
-                              language: 'zh',
-                            }),
-                          });
-                          const result = await res.json();
-                          if (result.success) {
-                            setGeneratedContent({
-                              title: result.data.headline,
-                              content: result.data.body + '\n\n' + (result.data.sections?.map((s: any) => `## ${s.title}\n${s.content}`).join('\n\n') || ''),
-                              metaTitle: result.data.headline,
-                              metaDescription: result.data.subheadline,
-                            });
-                          }
-                        } finally {
-                          setIsGeneratingContent(false);
-                        }
-                      }}
-                      disabled={isGeneratingContent}
-                      className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
-                    >
-                      <Sparkles size={12} />
-                      {isGeneratingContent ? '生成中...' : '生成文案'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Generate Button */}
-              {selectedKeyword && (
-                <button
-                  onClick={handleGenerateContent}
-                  disabled={isGeneratingContent}
-                  className="w-full py-3 bg-gradient-to-r from-[#0B1B2B] to-[#152942] text-[#D4AF37] rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                <Link
+                  href={`/customer/marketing/briefs?keyword=${encodeURIComponent(selectedKeyword)}&type=${contentType}`}
+                  className="w-full py-3 bg-gradient-to-r from-[#0B1B2B] to-[#152942] text-[#D4AF37] rounded-xl font-medium text-sm flex items-center justify-center gap-2"
                 >
-                  {isGeneratingContent ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      AI生成中...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} />
-                      AI生成内容
-                      <ArrowRight size={14} />
-                    </>
-                  )}
-                </button>
+                  <Sparkles size={16} />
+                  用此关键词创建 Brief
+                  <ArrowRight size={14} />
+                </Link>
               )}
             </div>
           </div>

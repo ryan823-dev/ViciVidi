@@ -378,13 +378,31 @@ export async function publishSocialPost(postId: string): Promise<{
   const allSuccess = results.every((r) => r.success);
   const anySuccess = results.some((r) => r.success);
 
+  const finalStatus = allSuccess ? "published" : anySuccess ? "published" : "failed";
   await db.socialPost.update({
     where: { id: postId },
     data: {
-      status: allSuccess ? "published" : anySuccess ? "published" : "failed",
+      status: finalStatus,
       publishedAt: anySuccess ? new Date() : undefined,
     },
   });
+
+  if (finalStatus === "failed") {
+    const failedPlatforms = results.filter(r => !r.success).map(r => r.platform).join(", ");
+    try {
+      await (db as unknown as Record<string, { create: (args: unknown) => Promise<unknown> }>).notification.create({
+        data: {
+          tenantId: session.user.tenantId,
+          type: "publish_failed",
+          title: "社媒帖子发布失败",
+          body: `「${post.title || "无标题"}」在 ${failedPlatforms} 发布失败，请检查账号授权。`,
+          actionUrl: "/customer/social",
+        },
+      });
+    } catch {
+      // no-op if Notification model not yet migrated
+    }
+  }
 
   revalidatePath("/customer/social");
 
