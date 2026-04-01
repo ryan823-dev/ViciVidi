@@ -754,9 +754,10 @@ function parseProcessingMeta(metadata: unknown): AssetProcessingMeta {
 }
 
 /**
- * 触发资产文本处理：创建后台任务 → 立即返回
- * 
+ * 触发资产文本处理：创建后台任务 → 立即尝试处理
+ *
  * 大文件文本提取和分块改为后台处理，避免 Vercel 超时
+ * 由于 Vercel Hobby plan 不支持高频 cron，这里会立即尝试调用处理 API
  * 前端通过 batchId 轮询处理状态
  */
 export async function triggerAssetProcessing(assetId: string): Promise<AssetProcessingMeta & { batchId: string }> {
@@ -825,7 +826,17 @@ export async function triggerAssetProcessing(assetId: string): Promise<AssetProc
     },
   });
 
-  // 立即返回，让 Cron 后台处理
+  // 立即触发处理（不依赖 cron 调度）
+  // 直接调用处理模块，避免 HTTP 调用的不可靠性
+  const { processAssetTaskDirectly } = await import("@/lib/asset-processor");
+
+  // 使用 Promise 异步执行，不等待结果
+  // 在 Vercel serverless 环境中，这可能被中断，但 cron 会作为兜底
+  processAssetTaskDirectly(queueRecord.id).catch((err) => {
+    console.warn("[triggerAssetProcessing] Processing error:", err);
+    // 错误已在 processor 内部处理，这里只是防止未捕获的 Promise rejection
+  });
+
   return {
     processingStatus: "pending",
     batchId: queueRecord.batchId,
