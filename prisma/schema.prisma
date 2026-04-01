@@ -9,30 +9,30 @@ datasource db {
 // ==================== TENANT & AUTH ====================
 
 model Tenant {
-  id          String    @id @default(cuid())  
+  id          String    @id @default(cuid())
   name        String
   slug        String    @unique
   domain      String?
   plan        String    @default("free")
   status      String    @default("active")
   settings    Json      @default("{}")
-  emailConfig Json?     // 邮件配置：平台Key/自定义Key、发件域名等
+  emailConfig Json? // 邮件配置：平台Key/自定义Key、发件域名等
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  users          User[]
-  products       Product[]
-  seoContents    SeoContent[]
-  seoAudits      SeoAudit[]
-  socialPosts    SocialPost[]
-  socialAccounts SocialAccount[]
-  leads          Lead[]
-  campaigns      Campaign[]
-  categories     ContentCategory[]
-  websiteConfigs WebsiteConfig[]
-  activities     Activity[]
-  notifications  Notification[]
+  users             User[]
+  products          Product[]
+  seoContents       SeoContent[]
+  seoAudits         SeoAudit[]
+  socialPosts       SocialPost[]
+  socialAccounts    SocialAccount[]
+  leads             Lead[]
+  campaigns         Campaign[]
+  categories        ContentCategory[]
+  websiteConfigs    WebsiteConfig[]
+  activities        Activity[]
+  notifications     Notification[]
   assetFolders      AssetFolder[]
   assets            Asset[]
   apiKeys           ApiKey[]
@@ -44,39 +44,41 @@ model Tenant {
   personas          Persona[]
   messagingMatrices MessagingMatrix[]
   // Phase 3
-  artifactVersions   ArtifactVersion[]
-  contentBriefs      ContentBrief[]
-  chatConversations  ChatConversation[]
+  artifactVersions  ArtifactVersion[]
+  contentBriefs     ContentBrief[]
+  chatConversations ChatConversation[]
+  // Web crawl queue
+  crawlQueues       CrawlQueue[]
 }
 
 model WebsiteConfig {
-  id              String   @id @default(cuid())  
+  id              String  @id @default(cuid())
   tenantId        String
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  siteName        String?  // 目标站名称（多站区分）
+  tenant          Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  siteName        String? // 目标站名称（多站区分）
   url             String?
   apiKey          String?
   publishEndpoint String?
-  seoDefaults     Json     @default("{}")
+  seoDefaults     Json    @default("{}")
 
   // === Publishing Pipeline 扩展 ===
-  siteType        String   @default("supabase") // supabase | nextjs | wordpress | rest
-  supabaseUrl     String?  // [supabase] e.g. "https://xxx.supabase.co"
-  functionName    String?  // [supabase] e.g. "receive-content-push"
-  webhookUrl      String?  // [nextjs | rest] 客户站接收 endpoint
-  wpUrl           String?  // [wordpress] WP 站点根 URL
-  wpUsername      String?  // [wordpress] WP 用户名
-  wpPassword      String?  // [wordpress] Application Password
-  pushSecret      String?  // 共享密钥（HMAC签名 / Bearer token）
-  customHeaders   Json?    // 自定义请求头（rest/nextjs 用）
-  fieldMapping    Json     @default("{}") // Vertax → 目标站字段映射
-  approvalTimeoutHours Int @default(24)
-  isActive        Boolean  @default(true)
+  siteType             String  @default("supabase") // supabase | nextjs | wordpress | rest
+  supabaseUrl          String? // [supabase] e.g. "https://xxx.supabase.co"
+  functionName         String? // [supabase] e.g. "receive-content-push"
+  webhookUrl           String? // [nextjs | rest] 客户站接收 endpoint
+  wpUrl                String? // [wordpress] WP 站点根 URL
+  wpUsername           String? // [wordpress] WP 用户名
+  wpPassword           String? // [wordpress] Application Password
+  pushSecret           String? // 共享密钥（HMAC签名 / Bearer token）
+  customHeaders        Json? // 自定义请求头（rest/nextjs 用）
+  fieldMapping         Json    @default("{}") // Vertax → 目标站字段映射
+  approvalTimeoutHours Int     @default(24)
+  isActive             Boolean @default(true)
 
-  pushRecords     PushRecord[]
+  pushRecords PushRecord[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId])
 }
@@ -84,61 +86,61 @@ model WebsiteConfig {
 // ==================== CONTENT PUSH PIPELINE ====================
 
 enum PushStatus {
-  PENDING     // 已推送，等待客户站点审核
-  CONFIRMED   // 客户站点已确认发布
-  TIMEOUT     // 超时未确认
-  FAILED      // 推送失败
-  ESCALATED   // 已升级到运营处理
+  PENDING // 已推送，等待客户站点审核
+  CONFIRMED // 客户站点已确认发布
+  TIMEOUT // 超时未确认
+  FAILED // 推送失败
+  ESCALATED // 已升级到运营处理
 }
 
 model PushRecord {
-  id              String     @id @default(cuid())  
-  tenantId        String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 关联内容
-  contentId       String     // SeoContent.id
-  content         SeoContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String // SeoContent.id
+  content   SeoContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   // 目标站点
-  websiteConfigId String 
+  websiteConfigId String
   websiteConfig   WebsiteConfig @relation(fields: [websiteConfigId], references: [id], onDelete: Cascade)
 
   // 推送状态
-  status          PushStatus @default(PENDING)
-  remoteId        String?    // 目标站点返回的记录 ID
-  remoteSlug      String?    // 目标站点的 slug
-  targetUrl       String?    // 目标站点上的完整 URL
+  status     PushStatus @default(PENDING)
+  remoteId   String? // 目标站点返回的记录 ID
+  remoteSlug String? // 目标站点的 slug
+  targetUrl  String? // 目标站点上的完整 URL
 
   // 字段快照（推送时的映射结果）
-  pushPayload     Json?      // 实际发送的 payload 快照
-  contentVersion  Int?       // 推送时对应的 SeoContent.version
-  contentSnapshot Json?      // { title, slug, excerpt, keywords } 快照
+  pushPayload     Json? // 实际发送的 payload 快照
+  contentVersion  Int? // 推送时对应的 SeoContent.version
+  contentSnapshot Json? // { title, slug, excerpt, keywords } 快照
 
   // 时间追踪
-  pushedAt        DateTime   @default(now())
-  timeoutAt       DateTime   // pushedAt + approvalTimeoutHours
-  confirmedAt     DateTime?
-  escalatedAt     DateTime?
+  pushedAt    DateTime  @default(now())
+  timeoutAt   DateTime // pushedAt + approvalTimeoutHours
+  confirmedAt DateTime?
+  escalatedAt DateTime?
 
   // 错误处理
-  retryCount      Int        @default(0)
-  lastError       String?
+  retryCount Int     @default(0)
+  lastError  String?
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([contentId, websiteConfigId]) // 每个内容每个站点只有一条推送记录
 }
 
 model User {
-  id            String    @id @default(cuid())  
+  id            String    @id @default(cuid())
   email         String    @unique
   emailVerified DateTime?
   name          String?
   image         String?
   password      String?
   tenantId      String?
-  tenant        Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   roleId        String
   role          Role      @relation(fields: [roleId], references: [id])
   locale        String    @default("zh-CN")
@@ -148,15 +150,15 @@ model User {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  accounts    Account[]
-  sessions    Session[]
-  seoContents SeoContent[]
-  seoAudits   SeoAudit[]
-  socialPosts SocialPost[]
-  ownedLeads  Lead[]
-  activities  Activity[]
-  assets      Asset[]
-  evidences   Evidence[]
+  accounts          Account[]
+  sessions          Session[]
+  seoContents       SeoContent[]
+  seoAudits         SeoAudit[]
+  socialPosts       SocialPost[]
+  ownedLeads        Lead[]
+  activities        Activity[]
+  assets            Asset[]
+  evidences         Evidence[]
   // Phase 3
   artifactVersions  ArtifactVersion[]
   contentBriefs     ContentBrief[]
@@ -164,11 +166,10 @@ model User {
   tasksCreated      ArtifactTask[]     @relation("TaskCreator")
   tasksAssigned     ArtifactTask[]     @relation("TaskAssignee")
   chatConversations ChatConversation[]
-
 }
 
 model Role {
-  id           String   @id @default(cuid())  
+  id           String   @id @default(cuid())
   name         String   @unique
   displayName  String
   permissions  Json
@@ -180,17 +181,17 @@ model Role {
 }
 
 model Account {
-  id                String  @id @default(cuid())  
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? 
-  access_token      String? 
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? 
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -199,16 +200,15 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())  
+  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
 }
 
 model VerificationToken {
-  id        String @id @default(cuid())  
+  id         String   @id @default(cuid())
   identifier String
   token      String   @unique
   expires    DateTime
@@ -217,7 +217,7 @@ model VerificationToken {
 }
 
 model ApiKey {
-  id          String    @id @default(cuid())  
+  id          String    @id @default(cuid())
   tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -228,20 +228,19 @@ model ApiKey {
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
 }
 
 // ==================== MODULE 1: PRODUCTS ====================
 
 model Product {
-  id              String    @id @default(cuid())  
+  id              String    @id @default(cuid())
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sku             String?
   name            String
   slug            String
-  description     String?   
-  detailedContent String?   
+  description     String?
+  detailedContent String?
   status          String    @default("draft")
   publishedAt     DateTime?
   metadata        Json      @default("{}")
@@ -257,29 +256,27 @@ model Product {
 }
 
 model ProductImage {
-  id        String   @id @default(cuid())  
+  id        String   @id @default(cuid())
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
   altText   String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
-
 }
 
 model ProductSpec {
-  id        String  @id @default(cuid())  
+  id        String  @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   key       String
-  value     String  
+  value     String
   unit      String?
   order     Int     @default(0)
-
 }
 
 model ProductCategory {
-  id        String  @id @default(cuid())  
+  id        String  @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   name      String
@@ -290,8 +287,8 @@ model ProductCategory {
 // ==================== MODULE 2: SEO & GEO CONTENT ====================
 
 model SeoAudit {
-  id            String    @id @default(cuid())  
-  tenantId      String 
+  id            String    @id @default(cuid())
+  tenantId      String
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId        String
   user          User      @relation(fields: [userId], references: [id])
@@ -301,17 +298,16 @@ model SeoAudit {
   currentStep   String?
   scores        Json      @default("{}")
   findings      Json      @default("[]")
-  aiSummary     String?   
+  aiSummary     String?
   crawlErrors   Json      @default("[]")
   pagesCrawled  Int       @default(0)
   crawlDuration Int?
   createdAt     DateTime  @default(now())
   completedAt   DateTime?
-
 }
 
 model ContentCategory {
-  id          String   @id @default(cuid())  
+  id          String   @id @default(cuid())
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -328,7 +324,7 @@ model ContentCategory {
 }
 
 model SeoContent {
-  id              String          @id @default(cuid())  
+  id              String          @id @default(cuid())
   tenantId        String
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   categoryId      String
@@ -337,8 +333,8 @@ model SeoContent {
   author          User            @relation(fields: [authorId], references: [id])
   title           String
   slug            String
-  excerpt         String?         
-  content         String          
+  excerpt         String?
+  content         String
   metaTitle       String?
   metaDescription String?
   keywords        String[]
@@ -346,21 +342,21 @@ model SeoContent {
   status          String          @default("draft")
   publishedAt     DateTime?
   scheduledAt     DateTime?
-  version         Int             @default(1)  // 内容版本号，每次保存自动 +1
+  version         Int             @default(1) // 内容版本号，每次保存自动 +1
   aiMetadata      Json            @default("{}")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   deletedAt       DateTime?
 
   // Phase 3 扩展
-  briefId      String?
-  brief        ContentBrief?  @relation(fields: [briefId], references: [id], onDelete: SetNull)
-  outline      Json?          // { sections: [{ heading, keyPoints }] }
-  evidenceRefs String[]       // 引用的 Evidence id
-  schemaJson   Json?          // Schema.org 结构化数据 (FAQPage JSON-LD)
-  geoVersion   String?        // GEO-optimized short version (300-500 words, for AI citation)
-  pushRecords  PushRecord[]   // 推送记录
-  contentLinks RadarContentLink[] // 获客雷达内容联动
+  briefId          String?
+  brief            ContentBrief?           @relation(fields: [briefId], references: [id], onDelete: SetNull)
+  outline          Json? // { sections: [{ heading, keyPoints }] }
+  evidenceRefs     String[] // 引用的 Evidence id
+  schemaJson       Json? // Schema.org 结构化数据 (FAQPage JSON-LD)
+  geoVersion       String? // GEO-optimized short version (300-500 words, for AI citation)
+  pushRecords      PushRecord[] // 推送记录
+  contentLinks     RadarContentLink[] // 获客雷达内容联动
   geoDistributions GeoDistributionRecord[] // GEO 分发追踪
 
   @@unique([tenantId, slug])
@@ -369,14 +365,14 @@ model SeoContent {
 // ==================== MODULE 3: SOCIAL MEDIA ====================
 
 model SocialAccount {
-  id           String    @id @default(cuid())  
+  id           String    @id @default(cuid())
   tenantId     String
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   platform     String
   accountName  String
   accountId    String
-  accessToken  String?   
-  refreshToken String?   
+  accessToken  String?
+  refreshToken String?
   expiresAt    DateTime?
   metadata     Json      @default("{}")
   isActive     Boolean   @default(true)
@@ -387,7 +383,7 @@ model SocialAccount {
 }
 
 model SocialPost {
-  id           String    @id @default(cuid())  
+  id           String    @id @default(cuid())
   tenantId     String
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   authorId     String
@@ -403,28 +399,26 @@ model SocialPost {
   deletedAt    DateTime?
 
   versions PostVersion[]
-
 }
 
 model PostVersion {
-  id              String     @id @default(cuid())  
+  id              String     @id @default(cuid())
   postId          String
   post            SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   platform        String
-  content         String     
+  content         String
   media           String[]
   platformPostId  String?
   publishedAt     DateTime?
   error           String?
   publishAttempts Int        @default(0)
   metrics         Json       @default("{}")
-
 }
 
 // ==================== MODULE 4: AI LEAD GENERATION ====================
 
 model Lead {
-  id              String    @id @default(cuid())  
+  id              String    @id @default(cuid())
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ownerId         String
@@ -441,23 +435,22 @@ model Lead {
   status          String    @default("new")
   priority        String    @default("medium")
   researchData    Json      @default("{}")
-  notes           String?   
+  notes           String?
   lastContactedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
 
   campaigns CampaignLead[]
-
 }
 
 model Campaign {
-  id             String    @id @default(cuid())  
+  id             String    @id @default(cuid())
   tenantId       String
   tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name           String
-  description    String?   
-  emailTemplate  String    
+  description    String?
+  emailTemplate  String
   subject        String
   status         String    @default("draft")
   scheduledStart DateTime?
@@ -468,11 +461,10 @@ model Campaign {
   deletedAt      DateTime?
 
   leads CampaignLead[]
-
 }
 
 model CampaignLead {
-  id                  String    @id @default(cuid())  
+  id                  String    @id @default(cuid())
   campaignId          String
   campaign            Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   leadId              String
@@ -481,7 +473,7 @@ model CampaignLead {
   sentAt              DateTime?
   openedAt            DateTime?
   repliedAt           DateTime?
-  personalizedContent String?   
+  personalizedContent String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -491,7 +483,7 @@ model CampaignLead {
 // ==================== SYSTEM ====================
 
 model Activity {
-  id         String   @id @default(cuid())  
+  id         String   @id @default(cuid())
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId     String
@@ -503,10 +495,9 @@ model Activity {
   createdAt  DateTime @default(now())
 
   // Phase 3 扩展
-  eventCategory String?  // "knowledge"|"marketing"|"review"|"chat"|"system"
-  severity      String?  // "info"|"warn"|"error"
-  context       Json?    // { versionId, briefId, previousStatus, ... }
-
+  eventCategory String? // "knowledge"|"marketing"|"review"|"chat"|"system"
+  severity      String? // "info"|"warn"|"error"
+  context       Json? // { versionId, briefId, previousStatus, ... }
 }
 
 // ==================== MODULE 6: KNOWLEDGE ENGINE ====================
@@ -536,18 +527,18 @@ enum ArtifactStatus {
   client_feedback
   revised
   approved
-  published   // UI隐藏，后续启用
+  published // UI隐藏，后续启用
   archived
 }
 
 model CompanyProfile {
-  id       String @id @default(cuid())  
+  id       String @id @default(cuid())
   tenantId String @unique
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   // 企业基本信息（AI提炼）
   companyName  String?
-  companyIntro String? 
+  companyIntro String?
 
   // 核心能力画像
   coreProducts    Json @default("[]") // 核心产品/服务能力
@@ -564,23 +555,22 @@ model CompanyProfile {
 
   // AI 分析元数据
   lastAnalyzedAt DateTime?
-  analysisSource Json    @default("[]") // 分析使用的素材ID列表
+  analysisSource Json      @default("[]") // 分析使用的素材ID列表
   aiModel        String? // 使用的AI模型
-  rawAnalysis    String?  // AI原始分析结果
+  rawAnalysis    String? // AI原始分析结果
 
   // Phase 2 扩展
-  sectionEdits   Json    @default("{}") // { sectionKey: { content, editedAt, editedBy } }
-  evidenceRefs   Json    @default("{}") // { sectionKey: string[] }
+  sectionEdits Json @default("{}") // { sectionKey: { content, editedAt, editedBy } }
+  evidenceRefs Json @default("{}") // { sectionKey: string[] }
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
 }
 
 // ==================== MODULE 5: ASSET HUB ====================
 
 model AssetFolder {
-  id          String        @id @default(cuid())  
+  id          String        @id @default(cuid())
   tenantId    String
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
@@ -599,7 +589,7 @@ model AssetFolder {
 }
 
 model Asset {
-  id           String       @id @default(cuid())  
+  id           String       @id @default(cuid())
   tenantId     String
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   uploadedById String
@@ -615,14 +605,14 @@ model Asset {
   extension    String
 
   // 分类
-  fileCategory String   // video | image | document | audio | other
+  fileCategory String // video | image | document | audio | other
   purpose      String[] // knowledge | marketing | reference
   tags         String[]
 
   // 内容
   title       String
   description String?
-  metadata    Json     @default("{}")
+  metadata    Json    @default("{}")
 
   // 状态
   status    String    @default("uploading") // uploading | active | archived | deleted
@@ -630,40 +620,38 @@ model Asset {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  chunks    AssetChunk[]
-
+  chunks AssetChunk[]
 }
 
 // ==================== ASSET CHUNKS (文本分块) ====================
 
 model AssetChunk {
-  id         String   @id @default(cuid())  
-  tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  assetId    String
-  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assetId  String
+  asset    Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
-  content    String   
+  content    String
   chunkIndex Int
   pageNumber Int?
   charStart  Int?
   charEnd    Int?
   tokenCount Int?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  evidences  Evidence[]
-
+  evidences Evidence[]
 }
 
 // ==================== EVIDENCE (证据库) ====================
 
 model Evidence {
-  id            String       @id @default(cuid())  
-  tenantId      String 
+  id            String       @id @default(cuid())
+  tenantId      String
   tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   title         String
-  content       String       
+  content       String
   type          EvidenceType @default(claim)
   sourceLocator Json         @default("{}")
   chunkId       String?
@@ -677,93 +665,88 @@ model Evidence {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   deletedAt     DateTime?
-
 }
 
 // ==================== BRAND GUIDELINES (品牌规范) ====================
 
 model BrandGuideline {
-  id        String            @id @default(cuid())  
+  id        String            @id @default(cuid())
   tenantId  String
   tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category  GuidelineCategory
   title     String
-  content   String            
+  content   String
   examples  Json              @default("[]")
   isActive  Boolean           @default(true)
   order     Int               @default(0)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
-
 }
 
 // ==================== ICP & PERSONA (画像中心) ====================
 
 model ICPSegment {
-  id          String    @id @default(cuid())  
+  id          String   @id @default(cuid())
   tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
   industry    String?
   companySize String?
   regions     String[]
-  description String?   
-  criteria    Json      @default("{}")
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  description String?
+  criteria    Json     @default("{}")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  personas    Persona[]
-
+  personas Persona[]
 }
 
 model Persona {
-  id              String        @id @default(cuid())  
-  tenantId        String
-  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  segmentId       String?
-  segment         ICPSegment?   @relation(fields: [segmentId], references: [id], onDelete: SetNull)
-  name            String
-  title           String
-  seniority       String?
-  concerns        String[]
-  messagingPrefs  Json          @default("{}")
-  evidenceRefs    String[]
-  order           Int           @default(0)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id             String      @id @default(cuid())
+  tenantId       String
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  segmentId      String?
+  segment        ICPSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  name           String
+  title          String
+  seniority      String?
+  concerns       String[]
+  messagingPrefs Json        @default("{}")
+  evidenceRefs   String[]
+  order          Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   messagingMatrix MessagingMatrix[]
   contentBriefs   ContentBrief[]
-
 }
 
 model MessagingMatrix {
-  id           String   @id @default(cuid())  
+  id           String   @id @default(cuid())
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   personaId    String
   persona      Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
   valueProp    String
-  message      String   
+  message      String
   channel      String?
   evidenceRefs String[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
 }
 
 // ==================== Phase 3: ARTIFACT VERSIONING ====================
 
 model ArtifactVersion {
-  id          String         @id @default(cuid())  
+  id          String         @id @default(cuid())
   tenantId    String
   tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  entityType  String         // "CompanyProfile"|"Evidence"|"BrandGuideline"|"Persona"|"ContentBrief"|"SeoContent"
+  entityType  String // "CompanyProfile"|"Evidence"|"BrandGuideline"|"Persona"|"ContentBrief"|"SeoContent"
   entityId    String
-  version     Int            // 从 1 自增
+  version     Int // 从 1 自增
   status      ArtifactStatus @default(draft)
-  content     Json           // 实体完整快照
+  content     Json // 实体完整快照
   meta        Json           @default("{}") // { changeNote, generatedBy: "ai"|"human", wordCount }
   createdById String
   createdBy   User           @relation(fields: [createdById], references: [id])
@@ -778,17 +761,17 @@ model ArtifactVersion {
 // ==================== Phase 3: CONTENT BRIEF ====================
 
 model ContentBrief {
-  id              String    @id @default(cuid())  
+  id              String    @id @default(cuid())
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   title           String
   targetPersonaId String?
   targetPersona   Persona?  @relation(fields: [targetPersonaId], references: [id], onDelete: SetNull)
   targetKeywords  String[]
-  intent          String    // "informational"|"commercial"|"transactional"|"navigational"
+  intent          String // "informational"|"commercial"|"transactional"|"navigational"
   cta             String?
-  evidenceIds     String[]  // 引用的 Evidence id 列表
-  notes           String?   
+  evidenceIds     String[] // 引用的 Evidence id 列表
+  notes           String?
   status          String    @default("draft") // "draft"|"ready"|"in_progress"|"done"
   createdById     String
   createdBy       User      @relation(fields: [createdById], references: [id])
@@ -797,85 +780,80 @@ model ContentBrief {
   deletedAt       DateTime?
 
   contentPieces SeoContent[]
-
 }
 
 // ==================== Phase 3: ARTIFACT COLLABORATION ====================
 
 model ArtifactComment {
-  id         String           @id @default(cuid())  
+  id         String            @id @default(cuid())
   tenantId   String
   versionId  String
-  version    ArtifactVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
-  content    String           
+  version    ArtifactVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  content    String
   authorId   String
-  author     User             @relation(fields: [authorId], references: [id])
+  author     User              @relation(fields: [authorId], references: [id])
   parentId   String?
-  parent     ArtifactComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parent     ArtifactComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies    ArtifactComment[] @relation("CommentReplies")
   resolvedAt DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   // Phase 3 协作壳：锚点定位
-  anchorType   String?   // "jsonPath"|"textRange"|"blockId"|"rowId"
-  anchorValue  String?   // e.g. "coreProducts[0]", "block-uuid-xxx"
-  anchorLabel  String?   // 人类可读标签，如"核心产品·第1项"
+  anchorType  String? // "jsonPath"|"textRange"|"blockId"|"rowId"
+  anchorValue String? // e.g. "coreProducts[0]", "block-uuid-xxx"
+  anchorLabel String? // 人类可读标签，如"核心产品·第1项"
 
   // 评论转任务关联
-  linkedTask   ArtifactTask? @relation("CommentTask")
-
+  linkedTask ArtifactTask? @relation("CommentTask")
 }
 
 model ArtifactTask {
-  id          String           @id @default(cuid())  
+  id          String          @id @default(cuid())
   tenantId    String
   versionId   String
-  version     ArtifactVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  version     ArtifactVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
   title       String
   assigneeId  String?
-  assignee    User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  status      String           @default("open") // "open"|"in_progress"|"done"|"cancelled"
-  priority    String           @default("normal") // "urgent"|"normal"|"low"
+  assignee    User?           @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  status      String          @default("open") // "open"|"in_progress"|"done"|"cancelled"
+  priority    String          @default("normal") // "urgent"|"normal"|"low"
   dueDate     DateTime?
   createdById String
-  createdBy   User             @relation("TaskCreator", fields: [createdById], references: [id])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdBy   User            @relation("TaskCreator", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   // Phase 3 协作壳：来源评论关联
   sourceCommentId String?          @unique
   sourceComment   ArtifactComment? @relation("CommentTask", fields: [sourceCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
 }
 
 // ==================== Phase 3: DECISION CENTER CHAT ====================
 
 model ChatConversation {
-  id              String        @id @default(cuid())  
+  id              String   @id @default(cuid())
   tenantId        String
-  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title           String?
-  contextSnapshot Json?         // debug 用：记录构建时的上下文摘要
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  contextSnapshot Json? // debug 用：记录构建时的上下文摘要
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   messages ChatMessage[]
-
 }
 
 model ChatMessage {
-  id             String           @id @default(cuid())  
+  id             String           @id @default(cuid())
   conversationId String
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String           // "user"|"assistant"|"system"
-  content        String           
-  references     Json?            // [{ evidenceId, title, excerpt }]
+  role           String // "user"|"assistant"|"system"
+  content        String
+  references     Json? // [{ evidenceId, title, excerpt }]
   tokens         Int?
   createdAt      DateTime         @default(now())
-
 }
 
 // ==================== MODULE 7: RADAR (获客雷达) ====================
@@ -883,43 +861,43 @@ model ChatMessage {
 // ==================== ENUMS (Radar) ====================
 
 enum ChannelType {
-  TENDER      // 招标/采购
-  MAPS        // 地图 POI
-  DIRECTORY   // 行业名录/协会
-  TRADESHOW   // 展会
-  HIRING      // 招聘信号
-  ECOSYSTEM   // 生态伙伴
-  CUSTOM      // 自定义
+  TENDER // 招标/采购
+  MAPS // 地图 POI
+  DIRECTORY // 行业名录/协会
+  TRADESHOW // 展会
+  HIRING // 招聘信号
+  ECOSYSTEM // 生态伙伴
+  CUSTOM // 自定义
 }
 
 enum AdapterType {
-  API           // 官方 REST/GraphQL API
-  RSS           // RSS/Atom feed
-  AI_SEARCH     // AI + 搜索引擎
-  CSV_IMPORT    // CSV 导入
-  MANUAL        // 手动录入
+  API // 官方 REST/GraphQL API
+  RSS // RSS/Atom feed
+  AI_SEARCH // AI + 搜索引擎
+  CSV_IMPORT // CSV 导入
+  MANUAL // 手动录入
 }
 
 enum RadarStoragePolicy {
-  ID_ONLY           // 只存 ID，详情按需拉取
-  TTL_CACHE         // 缓存 N 天后清理
-  SNAPSHOT_IMPORT   // 导入时快照永久存储
+  ID_ONLY // 只存 ID，详情按需拉取
+  TTL_CACHE // 缓存 N 天后清理
+  SNAPSHOT_IMPORT // 导入时快照永久存储
 }
 
 enum CandidateType {
-  COMPANY      // 公司
-  OPPORTUNITY  // 机会（招标/项目）
-  CONTACT      // 联系人
+  COMPANY // 公司
+  OPPORTUNITY // 机会（招标/项目）
+  CONTACT // 联系人
 }
 
 enum CandidateStatus {
-  NEW          // 新发现
-  REVIEWING    // 审核中
-  QUALIFIED    // 已合格化
-  IMPORTED     // 已导入线索库
-  EXCLUDED     // 已排除
-  EXPIRED      // 已过期
-  ENRICHING    // 等待 getDetails() 补全
+  NEW // 新发现
+  REVIEWING // 审核中
+  QUALIFIED // 已合格化
+  IMPORTED // 已导入线索库
+  EXCLUDED // 已排除
+  EXPIRED // 已过期
+  ENRICHING // 等待 getDetails() 补全
 }
 
 enum RadarTaskStatus {
@@ -931,185 +909,183 @@ enum RadarTaskStatus {
 }
 
 enum OpportunityStage {
-  IDENTIFIED    // 已识别
-  QUALIFYING    // 资格评估中
-  PURSUING      // 跟进中
-  PROPOSAL      // 已提案
-  NEGOTIATION   // 谈判中
-  WON           // 赢单
-  LOST          // 丢单
+  IDENTIFIED // 已识别
+  QUALIFYING // 资格评估中
+  PURSUING // 跟进中
+  PROPOSAL // 已提案
+  NEGOTIATION // 谈判中
+  WON // 赢单
+  LOST // 丢单
 }
 
 // ==================== 数据源目录 ====================
 
 model RadarSource {
-  id              String   @id @default(cuid())  
-  tenantId        String?  // null = 系统级公共源
-  
-  // 分类
-  channelType     ChannelType
-  
-  // 基础信息
-  name            String
-  code            String   @unique
-  description     String?
-  logoUrl         String?
-  websiteUrl      String?
-  
-  // 覆盖范围
-  countries       String[] // ISO codes, 空 = 全球
-  regions         String[] // EU | LATAM | MENA | APAC 等
-  
-  // 接入配置
-  adapterType     AdapterType
-  adapterConfig   Json     @default("{}") // API endpoint, auth, field mapping 等
-  
-  // 合规与策略
-  isOfficial      Boolean  @default(false)  // 是否官方源
-  requiresAuth    Boolean  @default(false)
-  termsUrl        String?
-  storagePolicy   RadarStoragePolicy @default(TTL_CACHE)
-  ttlDays         Int      @default(90)
-  attributionRequired Boolean @default(true)
-  
-  // 速率限制
-  rateLimit       Json     @default("{}") // { requests, windowMs }
-  
-  // 状态
-  isEnabled       Boolean  @default(true)
-  lastSyncAt      DateTime?
-  syncStats       Json?    // { totalFetched, lastError, avgResponseTime }
-  
-  // 关系
-  candidates      RadarCandidate[]
-  tasks           RadarTask[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id       String  @id @default(cuid())
+  tenantId String? // null = 系统级公共源
 
+  // 分类
+  channelType ChannelType
+
+  // 基础信息
+  name        String
+  code        String  @unique
+  description String?
+  logoUrl     String?
+  websiteUrl  String?
+
+  // 覆盖范围
+  countries String[] // ISO codes, 空 = 全球
+  regions   String[] // EU | LATAM | MENA | APAC 等
+
+  // 接入配置
+  adapterType   AdapterType
+  adapterConfig Json        @default("{}") // API endpoint, auth, field mapping 等
+
+  // 合规与策略
+  isOfficial          Boolean            @default(false) // 是否官方源
+  requiresAuth        Boolean            @default(false)
+  termsUrl            String?
+  storagePolicy       RadarStoragePolicy @default(TTL_CACHE)
+  ttlDays             Int                @default(90)
+  attributionRequired Boolean            @default(true)
+
+  // 速率限制
+  rateLimit Json @default("{}") // { requests, windowMs }
+
+  // 状态
+  isEnabled  Boolean   @default(true)
+  lastSyncAt DateTime?
+  syncStats  Json? // { totalFetched, lastError, avgResponseTime }
+
+  // 关系
+  candidates RadarCandidate[]
+  tasks      RadarTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== 发现任务 ====================
 
 model RadarTask {
-  id              String   @id @default(cuid())  
-  tenantId        String
-  
+  id       String @id @default(cuid())
+  tenantId String
+
   // 任务配置
-  name            String?
-  sourceId        String
-  source          RadarSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  
+  name     String?
+  sourceId String
+  source   RadarSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
   // 画像引用（可追溯）
-  targetingRef    Json?    // { segmentId?, personaId?, specVersionId? }
-  channelMapRef   String?  // 引用 ArtifactVersion id
-  
+  targetingRef  Json? // { segmentId?, personaId?, specVersionId? }
+  channelMapRef String? // 引用 ArtifactVersion id
+
   // 查询计划
-  queryConfig     Json     // 搜索参数：keywords, categories, regions, dateRange
-  
+  queryConfig Json // 搜索参数：keywords, categories, regions, dateRange
+
   // 执行状态
-  status          RadarTaskStatus @default(PENDING)
-  startedAt       DateTime?
-  completedAt     DateTime?
-  cancelToken     String?
-  
+  status      RadarTaskStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelToken String?
+
   // 统计
-  stats           Json?    // { fetched, new, duplicate, errors, duration }
-  errorMessage    String?
-  
+  stats        Json? // { fetched, new, duplicate, errors, duration }
+  errorMessage String?
+
   // 触发方式
-  triggeredBy     String   // userId | "scheduler" | "manual"
-  scheduleRule    String?  // cron expression for recurring
-  
+  triggeredBy  String // userId | "scheduler" | "manual"
+  scheduleRule String? // cron expression for recurring
+
   // 关系
-  candidates      RadarCandidate[]
-  
-  createdAt       DateTime @default(now())
-  
+  candidates RadarCandidate[]
+
+  createdAt DateTime @default(now())
 }
 
 // ==================== 统一候选池 ====================
 
 model RadarCandidate {
-  id              String   @id @default(cuid())  
-  tenantId        String
-  
+  id       String @id @default(cuid())
+  tenantId String
+
   // 来源追溯（必须）
-  sourceId        String
-  source          RadarSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  taskId          String?
-  task            RadarTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  
+  sourceId String
+  source   RadarSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  taskId   String?
+  task     RadarTask?  @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
   // 候选类型
-  candidateType   CandidateType
-  
+  candidateType CandidateType
+
   // 外部标识
-  externalId      String   // place_id, notice_id, etc.
-  sourceUrl       String   // 必须有，用于追溯
-  
+  externalId String // place_id, notice_id, etc.
+  sourceUrl  String // 必须有，用于追溯
+
   // 通用字段
-  displayName     String
-  description     String?  
-  
+  displayName String
+  description String?
+
   // 公司字段（candidateType=COMPANY）
-  website         String?
-  phone           String?
-  email           String?
-  address         String?
-  country         String?
-  city            String?
-  industry        String?
-  companySize     String?
-  
+  website     String?
+  phone       String?
+  email       String?
+  address     String?
+  country     String?
+  city        String?
+  industry    String?
+  companySize String?
+
   // 机会字段（candidateType=OPPORTUNITY，即招标）
-  deadline        DateTime?
-  estimatedValue  Float?
-  currency        String?
-  buyerName       String?
-  buyerCountry    String?
-  buyerType       String?  // government | enterprise | ngo | international_org
-  categoryCode    String?  // CPV / UNSPSC
-  categoryName    String?
-  
+  deadline       DateTime?
+  estimatedValue Float?
+  currency       String?
+  buyerName      String?
+  buyerCountry   String?
+  buyerType      String? // government | enterprise | ngo | international_org
+  categoryCode   String? // CPV / UNSPSC
+  categoryName   String?
+
   // 联系人字段（candidateType=CONTACT）
-  contactRole     String?
-  linkedInUrl     String?  // 公司 LinkedIn 页\uff08Exa 丰富化写入\uff09
+  contactRole       String?
+  linkedInUrl       String? // 公司 LinkedIn 页\uff08Exa 丰富化写入\uff09
   linkedCandidateId String? // 关联到哪个公司候选
-  
+
   // ICP 匹配（核心）
-  matchScore      Float?
-  matchExplain    Json?    // { rules: [...], reasons: [...], query, channel }
-  
+  matchScore   Float?
+  matchExplain Json? // { rules: [...], reasons: [...], query, channel }
+
   // AI 处理
-  aiSummary       String?  
-  aiRelevance     Json?    // { score, reasons[], matchedKeywords[] }
-  
+  aiSummary   String?
+  aiRelevance Json? // { score, reasons[], matchedKeywords[] }
+
   // 状态
-  status          CandidateStatus @default(NEW)
-  qualifyTier     String?  // A | B | C | excluded
-  qualifyReason   String?
-  qualifiedAt     DateTime?
-  qualifiedBy     String?
-  
+  status        CandidateStatus @default(NEW)
+  qualifyTier   String? // A | B | C | excluded
+  qualifyReason String?
+  qualifiedAt   DateTime?
+  qualifiedBy   String?
+
   // 导入追踪
-  importedToType  String?  // ProspectCompany | Opportunity
-  importedToId    String?
-  importedAt      DateTime?
-  importedBy      String?
-  
+  importedToType String? // ProspectCompany | Opportunity
+  importedToId   String?
+  importedAt     DateTime?
+  importedBy     String?
+
   // 持续扫描关联
-  profileId       String?  // 触发该候选的 SearchProfile
-  publishedAt     DateTime? // 招标发布时间（从 source 获取）
-  enrichedAt      DateTime? // 详情补全完成时间
-  
+  profileId   String? // 触发该候选的 SearchProfile
+  publishedAt DateTime? // 招标发布时间（从 source 获取）
+  enrichedAt  DateTime? // 详情补全完成时间
+
   // TTL 策略
-  rawData         Json?
-  expireAt        DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  contentLinks    RadarContentLink[] // 获客雷达内容联动
+  rawData  Json?
+  expireAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contentLinks RadarContentLink[] // 获客雷达内容联动
 
   @@unique([sourceId, externalId])
 }
@@ -1117,196 +1093,192 @@ model RadarCandidate {
 // ==================== 正式线索公司 ====================
 
 model ProspectCompany {
-  id              String   @id @default(cuid())  
-  tenantId        String
-  
+  id       String @id @default(cuid())
+  tenantId String
+
   // 公司信息
-  name            String
-  website         String?
-  phone           String?
-  email           String?
-  address         String?
-  country         String?
-  city            String?
-  industry        String?
-  companySize     String?
-  description     String?  
-  
+  name        String
+  website     String?
+  phone       String?
+  email       String?
+  address     String?
+  country     String?
+  city        String?
+  industry    String?
+  companySize String?
+  description String?
+
   // 分类与标签
-  tier            String?  // A | B | C
-  tags            String[]
-  
+  tier String? // A | B | C
+  tags String[]
+
   // 来源追溯
-  sourceType      String?  // tender | maps | directory | tradeshow | hiring | manual
+  sourceType        String? // tender | maps | directory | tradeshow | hiring | manual
   sourceCandidateId String? // 来自哪个候选
-  sourceUrl       String?
-  
+  sourceUrl         String?
+
   // 跟进状态
-  status          String   @default("new") // new | contacted | qualified | converted | lost
+  status          String    @default("new") // new | contacted | qualified | converted | lost
   assignedTo      String?
   lastContactedAt DateTime?
   nextActionDate  DateTime?
-  notes           String?  
-  
+  notes           String?
+
   // 关系
-  contacts        ProspectContact[]
-  opportunities   Opportunity[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  
+  contacts      ProspectContact[]
+  opportunities Opportunity[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 // ==================== 正式联系人 ====================
 
 model ProspectContact {
-  id              String   @id @default(cuid())  
-  tenantId        String
-  
+  id       String @id @default(cuid())
+  tenantId String
+
   // 关联公司
-  companyId       String?
-  company         ProspectCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  
+  companyId String?
+  company   ProspectCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
   // 联系人信息
-  name            String
-  email           String?
-  phone           String?
-  role            String?
-  department      String?
-  seniority       String?  // C-level | VP | Director | Manager | Staff
-  linkedInUrl     String?
-  
+  name        String
+  email       String?
+  phone       String?
+  role        String?
+  department  String?
+  seniority   String? // C-level | VP | Director | Manager | Staff
+  linkedInUrl String?
+
   // 来源
   sourceCandidateId String?
-  sourceUrl       String?
-  
+  sourceUrl         String?
+
   // 状态
-  status          String   @default("new")
-  notes           String?  
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  
+  status String  @default("new")
+  notes  String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 // ==================== 正式机会（招标转化后） ====================
 
 model Opportunity {
-  id              String   @id @default(cuid())  
-  tenantId        String
-  
+  id       String @id @default(cuid())
+  tenantId String
+
   // 关联公司
-  companyId       String?
-  company         ProspectCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  
+  companyId String?
+  company   ProspectCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
   // 来源
-  sourceType      String   // tender | project | referral | inbound
+  sourceType        String // tender | project | referral | inbound
   sourceCandidateId String?
-  sourceUrl       String?
-  
+  sourceUrl         String?
+
   // 核心信息
-  title           String
-  description     String?  
-  
+  title       String
+  description String?
+
   // 时间与金额
-  deadline        DateTime?
-  estimatedValue  Float?
-  currency        String?
-  
+  deadline       DateTime?
+  estimatedValue Float?
+  currency       String?
+
   // 分类
-  categoryCode    String?
-  categoryName    String?
-  
+  categoryCode String?
+  categoryName String?
+
   // 阶段管理
-  stage           OpportunityStage @default(IDENTIFIED)
-  probability     Int?     // 0-100
-  lostReason      String?
-  wonAt           DateTime?
-  lostAt          DateTime?
-  
+  stage       OpportunityStage @default(IDENTIFIED)
+  probability Int? // 0-100
+  lostReason  String?
+  wonAt       DateTime?
+  lostAt      DateTime?
+
   // 跟进
-  assignedTo      String?
-  nextAction      String?
-  nextActionDate  DateTime?
-  notes           String?  
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  
+  assignedTo     String?
+  nextAction     String?
+  nextActionDate DateTime?
+  notes          String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 // ==================== 搜索配置（定时监控） ====================
 
 model RadarSearchProfile {
-  id              String   @id @default(cuid())  
-  tenantId        String
-  
-  name            String
-  description     String?
-  
+  id       String @id @default(cuid())
+  tenantId String
+
+  name        String
+  description String?
+
   // 关联画像
-  segmentId       String?  // 关联 ICPSegment
-  personaId       String?  // 关联 Persona
-  
+  segmentId String? // 关联 ICPSegment
+  personaId String? // 关联 Persona
+
   // 搜索配置
-  keywords        Json     @default("{}") // { en: [], zh: [], es: [], ar: [] }
-  negativeKeywords Json?   // 排除词
-  
+  keywords         Json  @default("{}") // { en: [], zh: [], es: [], ar: [] }
+  negativeKeywords Json? // 排除词
+
   // 目标区域
   targetCountries String[]
   targetRegions   String[]
-  
+
   // 行业/分类过滤
   industryCodes   String[]
   categoryFilters String[] // CPV/UNSPSC codes
-  
+
   // 渠道配置
   enabledChannels ChannelType[]
   sourceIds       String[] // 指定的 source ids
-  
+
   // 调度
-  isActive        Boolean  @default(true)
-  scheduleRule    String   @default("0 6 * * *") // 默认每天早6点
-  lastRunAt       DateTime?
-  
+  isActive     Boolean   @default(true)
+  scheduleRule String    @default("0 6 * * *") // 默认每天早6点
+  lastRunAt    DateTime?
+
   // === 持续扫描引擎 ===
-  nextRunAt       DateTime?          // 预计算下次运行时间（索引查询）
-  lockToken       String?            // 乐观锁 UUID
-  lockedAt        DateTime?          // 锁定时间（5分钟超时释放）
-  lockedBy        String?            // Vercel 实例标识
-  maxRunSeconds   Int      @default(45) // 单次扫描预算（留15s给60s timeout）
-  autoQualify     Boolean  @default(true)  // 自动触发 AI 合格化
-  autoEnrich      Boolean  @default(false) // 自动触发详情补全
-  runStats        Json?              // { totalRuns, totalNew, lastError, avgDurationMs }
-  exclusionRules  Json?              // 从 rejected 反向学习的排除词
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  nextRunAt      DateTime? // 预计算下次运行时间（索引查询）
+  lockToken      String? // 乐观锁 UUID
+  lockedAt       DateTime? // 锁定时间（5分钟超时释放）
+  lockedBy       String? // Vercel 实例标识
+  maxRunSeconds  Int       @default(45) // 单次扫描预算（留15s给60s timeout）
+  autoQualify    Boolean   @default(true) // 自动触发 AI 合格化
+  autoEnrich     Boolean   @default(false) // 自动触发详情补全
+  runStats       Json? // { totalRuns, totalNew, lastError, avgDurationMs }
+  exclusionRules Json? // 从 rejected 反向学习的排除词
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== 扫描游标（持续增量） ====================
 
 model RadarScanCursor {
-  id           String   @id @default(cuid())  
-  profileId    String
-  sourceId     String
+  id        String @id @default(cuid())
+  profileId String
+  sourceId  String
 
   // 游标状态
-  cursorState  Json     // { nextPage, nextPageToken, since, queryIndex, exhausted }
+  cursorState Json // { nextPage, nextPageToken, since, queryIndex, exhausted }
 
   // 统计
   lastScanAt   DateTime?
-  scanCount    Int      @default(0)
-  totalFetched Int      @default(0)
-  totalNew     Int      @default(0)
+  scanCount    Int       @default(0)
+  totalFetched Int       @default(0)
+  totalNew     Int       @default(0)
   lastError    String?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([profileId, sourceId])
 }
@@ -1314,31 +1286,31 @@ model RadarScanCursor {
 // ==================== 意图信号追踪 ====================
 
 model IntentSignal {
-  id          String   @id @default(cuid())  
-  tenantId    String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 关联实体
-  candidateId String?  // 关联 RadarCandidate
-  companyId   String?  // 关联 ProspectCompany
-  contactId   String?  // 关联 ProspectContact
+  candidateId String? // 关联 RadarCandidate
+  companyId   String? // 关联 ProspectCompany
+  contactId   String? // 关联 ProspectContact
 
   // 信号类型
-  signalType  String   // email_open, email_click, website_visit, pricing_view, demo_request
+  signalType String // email_open, email_click, website_visit, pricing_view, demo_request
 
   // 信号强度
-  intensity   Float    @default(1.0)  // 0.0 - 1.0
-  score       Int      @default(0)    // 计算后的意图分数
+  intensity Float @default(1.0) // 0.0 - 1.0
+  score     Int   @default(0) // 计算后的意图分数
 
   // 信号详情
-  metadata    Json?    // { emailId, link, page, duration, ip, userAgent }
-  ipAddress   String?
-  userAgent   String?
-  page        String?  // 访问的页面
-  referrer    String?  // 来源页面
+  metadata  Json? // { emailId, link, page, duration, ip, userAgent }
+  ipAddress String?
+  userAgent String?
+  page      String? // 访问的页面
+  referrer  String? // 来源页面
 
   // 时间戳
-  occurredAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@map("intent_signals")
 }
@@ -1346,56 +1318,56 @@ model IntentSignal {
 // ==================== Webhook集成 ====================
 
 model WebhookConfig {
-  id          String   @id @default(cuid())  
-  tenantId    String
+  id       String @id @default(cuid())
+  tenantId String
 
   // Webhook配置
-  name        String
-  url         String
-  method      String   @default("POST")  // POST, PUT, PATCH
-  headers     Json?    // 自定义请求头
-  authType    String   @default("none")  // none, basic, bearer
-  secret      String?  // 签名密钥（用于验证）
+  name     String
+  url      String
+  method   String  @default("POST") // POST, PUT, PATCH
+  headers  Json? // 自定义请求头
+  authType String  @default("none") // none, basic, bearer
+  secret   String? // 签名密钥（用于验证）
 
   // 触发事件
-  events      String[] // candidate_qualified, candidate_imported, email_sent, etc.
+  events String[] // candidate_qualified, candidate_imported, email_sent, etc.
 
   // 执行配置
-  isActive    Boolean  @default(true)
-  retryCount  Int      @default(3)
-  timeout     Int      @default(5000)  // 毫秒
+  isActive   Boolean @default(true)
+  retryCount Int     @default(3)
+  timeout    Int     @default(5000) // 毫秒
 
   // 元数据
   lastTriggeredAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  logs        WebhookLog[]
+  logs WebhookLog[]
 
   @@map("webhook_configs")
 }
 
 model WebhookLog {
-  id            String   @id @default(cuid())  
-  tenantId      String 
-  webhookId     String
+  id        String @id @default(cuid())
+  tenantId  String
+  webhookId String
 
   // 触发事件
-  event         String
-  payload       Json?
+  event   String
+  payload Json?
 
   // 执行结果
   success       Boolean
   statusCode    Int?
-  response      String?  // JSON响应
+  response      String? // JSON响应
   error         String?
-  executionTime Int      // 毫秒
-  retryAttempt  Int      @default(0)
+  executionTime Int // 毫秒
+  retryAttempt  Int     @default(0)
 
   // 时间戳
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  webhook       WebhookConfig @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  webhook WebhookConfig @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@map("webhook_logs")
 }
@@ -1403,23 +1375,23 @@ model WebhookLog {
 // ==================== API调用日志（成本追踪） ====================
 
 model ApiCallLog {
-  id          String   @id @default(cuid())  
+  id String @id @default(cuid())
 
   // 服务信息
-  service     String   // google_places, apollo, skrapp, hunter, brave_search
-  operation   String   // search, enrich, verify
+  service   String // google_places, apollo, skrapp, hunter, brave_search
+  operation String // search, enrich, verify
 
   // 成本
-  cost        Float    @default(0)  // USD
-  credits     Int      @default(0)  // 积分（可选）
+  cost    Float @default(0) // USD
+  credits Int   @default(0) // 积分（可选）
 
   // 结果
-  success     Boolean  @default(true)
-  errorCode   String?
-  metadata    Json?    // { query, resultCount, duration }
+  success   Boolean @default(true)
+  errorCode String?
+  metadata  Json? // { query, resultCount, duration }
 
   // 时间戳
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("api_call_logs")
 }
@@ -1427,31 +1399,31 @@ model ApiCallLog {
 // ==================== 统一API密钥管理（Tower后台） ====================
 
 model ApiKeyConfig {
-  id          String   @id @default(cuid())  
+  id String @id @default(cuid())
 
   // 服务名称
-  service     String   @unique // google_places, apollo, skrapp, hunter, brave_search, firecrawl, tavily, exa
-  
+  service String @unique // google_places, apollo, skrapp, hunter, brave_search, firecrawl, tavily, exa
+
   // 分类
-  category    String   @default("other") // AI Provider, 搜索 API, 企业数据, 政府采购
+  category String @default("other") // AI Provider, 搜索 API, 企业数据, 政府采购
 
   // 密钥（加密存储）
-  apiKey      String?
-  apiSecret   String?  // 部分服务需要两个密钥
+  apiKey    String?
+  apiSecret String? // 部分服务需要两个密钥
 
   // 状态
-  isEnabled   Boolean  @default(true)
-  lastUsedAt  DateTime?
+  isEnabled  Boolean   @default(true)
+  lastUsedAt DateTime?
 
   // 配额追踪
-  monthlyLimit   Int?     // 月度调用上限
-  currentUsage   Int      @default(0)  // 当前用量
-  usageResetAt   DateTime?  // 用量重置时间
+  monthlyLimit Int? // 月度调用上限
+  currentUsage Int       @default(0) // 当前用量
+  usageResetAt DateTime? // 用量重置时间
 
   // 元数据
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isEnabled])
   @@index([category])
@@ -1461,25 +1433,25 @@ model ApiKeyConfig {
 // ==================== 外联邮件记录 ====================
 
 model OutreachRecord {
-  id          String   @id @default(cuid())  
-  tenantId    String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 关联候选
   candidateId String?
-  profileId   String?  // RadarSearchProfile
+  profileId   String? // RadarSearchProfile
 
   // 收件人信息
-  toEmail     String
-  toName      String?
+  toEmail String
+  toName  String?
 
   // 邮件内容
-  subject     String
-  bodyText    String?  
-  bodyHtml    String?  
+  subject  String
+  bodyText String?
+  bodyHtml String?
 
   // 发送状态
-  messageId   String?  @unique // Resend message ID
-  status      String   @default("pending") // pending, sent, delivered, opened, clicked, bounced, failed
+  messageId String? @unique // Resend message ID
+  status    String  @default("pending") // pending, sent, delivered, opened, clicked, bounced, failed
 
   // 追踪数据
   sentAt      DateTime?
@@ -1488,13 +1460,13 @@ model OutreachRecord {
   clickedAt   DateTime?
 
   // 错误信息
-  error       String?
+  error String?
 
   // 元数据
-  metadata    Json?
+  metadata Json?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("outreach_records")
 }
@@ -1502,36 +1474,36 @@ model OutreachRecord {
 // ==================== 邮件外联序列 ====================
 
 model SequenceInstance {
-  id          String   @id @default(cuid())  
-  tenantId    String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 序列信息
-  sequenceName String
-  sequenceConfig Json  // 序列配置 JSON
-  candidateIds String[] // 目标候选人 IDs
+  sequenceName   String
+  sequenceConfig Json // 序列配置 JSON
+  candidateIds   String[] // 目标候选人 IDs
 
   // 状态
-  status      String   @default("draft") // draft, active, paused, completed, cancelled, failed
-  currentStep Int      @default(1)       // 当前步骤
-  totalSteps Int                       // 总步骤数
+  status      String @default("draft") // draft, active, paused, completed, cancelled, failed
+  currentStep Int    @default(1) // 当前步骤
+  totalSteps  Int // 总步骤数
 
   // 统计
-  sentCount   Int      @default(0)
-  failedCount Int      @default(0)
-  repliedCount Int    @default(0)
+  sentCount    Int @default(0)
+  failedCount  Int @default(0)
+  repliedCount Int @default(0)
 
   // 时间调度
-  nextSendAt   DateTime?
-  scheduledAt  DateTime?
-  startedAt    DateTime?
-  completedAt  DateTime?
+  nextSendAt     DateTime?
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
   lastActivityAt DateTime?
 
   // 元数据
-  metadata    Json?
+  metadata Json?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId, status])
   @@index([status, nextSendAt])
@@ -1541,20 +1513,20 @@ model SequenceInstance {
 // ==================== 获客雷达错误日志 ====================
 
 model RadarError {
-  id          String   @id @default(cuid())  
-  tenantId    String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 错误来源
-  adapter     String   // ted, ungm, brave, hunter, etc.
-  operation   String   // search, enrich, validate, etc.
-  error       String   // 错误信息
+  adapter   String // ted, ungm, brave, hunter, etc.
+  operation String // search, enrich, validate, etc.
+  error     String // 错误信息
 
   // 关联数据
   candidateId String?
   query       String?
 
   // 时间戳
-  timestamp   DateTime @default(now())
+  timestamp DateTime @default(now())
 
   @@index([adapter, timestamp])
   @@index([tenantId, timestamp])
@@ -1564,38 +1536,38 @@ model RadarError {
 // ==================== 获客雷达 ↔ 营销内容联动 ====================
 
 enum ContentLinkType {
-  KEYWORD_MATCH    // 关键词匹配
-  INDUSTRY_MATCH   // 行业匹配
-  OUTREACH_EMBED   // 外联嵌入
-  MANUAL           // 手动关联
+  KEYWORD_MATCH // 关键词匹配
+  INDUSTRY_MATCH // 行业匹配
+  OUTREACH_EMBED // 外联嵌入
+  MANUAL // 手动关联
 }
 
 model RadarContentLink {
-  id              String          @id @default(cuid())
-  tenantId        String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 双向关联
-  candidateId     String
-  candidate       RadarCandidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  contentId       String
-  content         SeoContent      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   RadarCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  contentId   String
+  content     SeoContent     @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   // 关联类型与细节
-  linkType        ContentLinkType
-  matchScore      Float?          // 匹配度 0-100
-  matchDetails    Json?           // { matchedKeywords[], reasons[], matchMethod }
+  linkType     ContentLinkType
+  matchScore   Float? // 匹配度 0-100
+  matchDetails Json? // { matchedKeywords[], reasons[], matchMethod }
 
   // 外联状态追踪
-  outreachStatus  String?         // pending | sent | opened | replied
-  outreachRecordId String?        // 关联 OutreachRecord id
+  outreachStatus   String? // pending | sent | opened | replied
+  outreachRecordId String? // 关联 OutreachRecord id
 
   // 效果追踪
-  clickCount      Int             @default(0)
-  leadGenerated   Boolean         @default(false)
-  conversionNote  String?
+  clickCount     Int     @default(0)
+  leadGenerated  Boolean @default(false)
+  conversionNote String?
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([candidateId, contentId])
   @@index([tenantId])
@@ -1607,51 +1579,51 @@ model RadarContentLink {
 // ==================== GEO 分发追踪 ====================
 
 enum GeoChannel {
-  CHATGPT         // ChatGPT / ChatGPT Search
-  PERPLEXITY      // Perplexity AI
-  CLAUDE          // Claude
-  GEMINI          // Gemini / Google AI Overviews
-  BING_COPILOT    // Bing Copilot
-  CUSTOM_SITE     // 客户独立站
+  CHATGPT // ChatGPT / ChatGPT Search
+  PERPLEXITY // Perplexity AI
+  CLAUDE // Claude
+  GEMINI // Gemini / Google AI Overviews
+  BING_COPILOT // Bing Copilot
+  CUSTOM_SITE // 客户独立站
 }
 
 enum CitationStatus {
-  PENDING         // 待检测
-  CITED           // 已被引用
-  NOT_CITED       // 未被引用
-  PARTIAL         // 部分引用
-  ERROR           // 检测失败
+  PENDING // 待检测
+  CITED // 已被引用
+  NOT_CITED // 未被引用
+  PARTIAL // 部分引用
+  ERROR // 检测失败
 }
 
 model GeoDistributionRecord {
-  id              String          @id @default(cuid())
-  tenantId        String
+  id       String @id @default(cuid())
+  tenantId String
 
   // 关联内容
-  contentId       String
-  content         SeoContent      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String
+  content   SeoContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   // 分发渠道
-  channel         GeoChannel
-  channelDetail   String?         // e.g. "ChatGPT Search", "Google AI Overviews"
+  channel       GeoChannel
+  channelDetail String? // e.g. "ChatGPT Search", "Google AI Overviews"
 
   // 分发内容快照
-  distributedVersion String?      // 分发时的 geoVersion 快照（前200字）
-  queryKeywords   String[]        // 用于检测引用的查询词
+  distributedVersion String? // 分发时的 geoVersion 快照（前200字）
+  queryKeywords      String[] // 用于检测引用的查询词
 
   // 引用追踪
-  citationStatus  CitationStatus  @default(PENDING)
-  citationUrl     String?         // AI 引擎引用的 URL
-  citationSnippet String?         // AI 引擎引用的片段
-  citationScore   Float?          // 引用质量评分 0-100
+  citationStatus  CitationStatus @default(PENDING)
+  citationUrl     String? // AI 引擎引用的 URL
+  citationSnippet String? // AI 引擎引用的片段
+  citationScore   Float? // 引用质量评分 0-100
   lastCheckedAt   DateTime?
 
   // 检测历史
-  checkCount      Int             @default(0)
-  checkHistory    Json?           // [{ checkedAt, status, snippet }]
+  checkCount   Int   @default(0)
+  checkHistory Json? // [{ checkedAt, status, snippet }]
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([contentId, channel])
   @@index([tenantId])
@@ -1662,19 +1634,51 @@ model GeoDistributionRecord {
 // ==================== NOTIFICATIONS ====================
 
 model Notification {
-  id        String    @id @default(cuid())
-  tenantId  String
-  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  type      String    // "tier_a_lead" | "geo_citation" | "publish_failed" | "system"
+  type      String // "tier_a_lead" | "geo_citation" | "publish_failed" | "system"
   title     String
   body      String
   actionUrl String?
   readAt    DateTime?
 
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([tenantId])
   @@index([tenantId, readAt])
   @@map("notifications")
+}
+
+// ==================== WEB CRAWL QUEUE ====================
+
+model CrawlQueue {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId   String // 发起用户 ID
+  batchId  String  @unique // 用于前端轮询
+  rootUrl  String // 根 URL
+  folderId String? // 可选的文件夹 ID
+
+  // 进度跟踪
+  totalPages     Int
+  processedPages Int    @default(0)
+  status         String @default("pending") // pending | processing | completed | failed
+
+  // URL 队列 (JSON 数组)
+  urls Json // [{ url, status, priority, assetId?, error?, processedAt? }]
+
+  // 元数据
+  metadata Json? // { discoveryMethod, requestedAt, maxPagesRequested, lastProcessedAt, lastStats, completedAt, lastError }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([batchId])
+  @@index([tenantId, status])
+  @@map("crawl_queue")
 }
