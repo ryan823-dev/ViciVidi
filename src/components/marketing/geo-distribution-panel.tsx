@@ -44,6 +44,19 @@ const ALL_CHANNELS: GeoChannel[] = [
   "BING_COPILOT",
 ];
 
+const CHANNEL_LABELS: Record<GeoChannel, string> = {
+  CHATGPT: 'ChatGPT',
+  PERPLEXITY: 'Perplexity',
+  CLAUDE: 'Claude',
+  GEMINI: 'Gemini / Google AI Overviews',
+  BING_COPILOT: 'Bing Copilot',
+  CUSTOM_SITE: 'Custom Site',
+};
+
+function getChannelLabel(channel: GeoChannel): string {
+  return CHANNEL_LABELS[channel] || channel;
+}
+
 // ==================== Component ====================
 
 export function GeoDistributionPanel({
