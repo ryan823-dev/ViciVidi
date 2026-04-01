@@ -21,12 +21,12 @@ export default async function Home() {
   
   // If customer subdomain, redirect to login
   if (isCustomerSubdomain) {
-    redirect("/login");
+    redirect("https://" + host + "/login");
   }
-  
+
   // If tower subdomain, redirect to login
   if (isTowerSubdomain) {
-    redirect("/login");
+    redirect("https://" + host + "/login");
   }
   
   // Only show landing page for root domain
