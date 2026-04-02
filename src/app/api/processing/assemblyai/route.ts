@@ -88,7 +88,8 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         audio_url: fileUrl,
-        language_code: "zh", // 自动检测中文
+        speech_models: ['universal-3-pro', 'universal-2'], // 支持中文
+        language_code: "zh",
         punctuate: true,
         format_text: true,
         speaker_labels: true, // 说话人识别

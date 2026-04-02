@@ -28,6 +28,10 @@ const BROWSER_SUPPORTED_TYPES = new Set([
   'text/plain',
   'text/markdown',
   'text/csv',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
 ]);
 
 // 音视频 MIME 类型（AssemblyAI）
@@ -62,15 +66,16 @@ export function decideProcessor(
   const isSmall = fileSize < BROWSER_THRESHOLD_BYTES;
   const isAudioVideo = AUDIO_VIDEO_TYPES.has(mimeType);
   const isImage = IMAGE_TYPES.has(mimeType);
-  const isLargeDocument = LARGE_DOCUMENT_TYPES.has(mimeType) && !isSmall;
   const isBrowserSupported = BROWSER_SUPPORTED_TYPES.has(mimeType);
   const hasMicroservice = !!process.env.PROCESSOR_SERVICE_URL;
+  const hasAssemblyAI = !!process.env.ASSEMBLYAI_API_KEY;
 
-  // 小文件 + 浏览器支持 → 浏览器端处理
-  if (isSmall && isBrowserSupported) {
+  // 微服务已配置 → 所有文档优先微服务处理（包括小文件）
+  if (hasMicroservice && isBrowserSupported) {
     return {
-      processor: 'browser',
-      reason: '小文件，浏览器端处理（更快）',
+      processor: 'microservice',
+      reason: '微服务已配置，使用微服务处理（支持所有格式）',
+      apiEndpoint: '/api/processing/microservice',
     };
   }
 
@@ -83,10 +88,9 @@ export function decideProcessor(
     };
   }
 
-  // 音视频文件 → AssemblyAI (需要对话内容才有效)
+  // 音视频文件 → AssemblyAI
   if (isAudioVideo) {
-    const hasApiKey = !!process.env.ASSEMBLYAI_API_KEY;
-    if (hasApiKey) {
+    if (hasAssemblyAI) {
       return {
         processor: 'assemblyai',
         reason: '音视频文件，使用 AssemblyAI 转录',
@@ -100,19 +104,18 @@ export function decideProcessor(
     };
   }
 
-  // 大文件文档 → 微服务处理
-  if (isLargeDocument && hasMicroservice) {
+  // 微服务未配置 → 小文件浏览器端处理
+  if (isSmall && isBrowserSupported) {
     return {
-      processor: 'microservice',
-      reason: '大文件文档，使用独立微服务处理',
-      apiEndpoint: '/api/processing/microservice',
+      processor: 'browser',
+      reason: '小文件，浏览器端处理（更快）',
     };
   }
 
   // 默认：服务端处理
   return {
     processor: 'server',
-    reason: hasMicroservice ? '使用服务端处理' : '微服务未配置，使用本地处理',
+    reason: '使用服务端本地处理',
   };
 }
 

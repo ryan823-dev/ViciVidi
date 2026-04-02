@@ -1,5 +1,7 @@
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import pptxParser from 'node-pptx-parser';
+import xlsx from 'xlsx';
 
 /**
  * 文本分块配置
@@ -25,6 +27,17 @@ export async function processDocument(fileBuffer, mimeType) {
     text = await extractWordText(fileBuffer);
   } else if (mimeType === 'text/plain' || mimeType === 'text/markdown' || mimeType === 'text/csv') {
     text = fileBuffer.toString('utf-8');
+  } else if (
+    mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+    mimeType === 'application/vnd.ms-powerpoint'
+  ) {
+    text = await extractPPTText(fileBuffer);
+  } else if (
+    mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    mimeType === 'application/vnd.ms-excel' ||
+    mimeType === 'text/spreadsheet'
+  ) {
+    text = await extractExcelText(fileBuffer);
   } else {
     // 尝试作为文本处理
     try {
