@@ -1,37 +1,33 @@
 import { PrismaClient } from '@prisma/client'
 import { createOrGetCustomer, createCheckoutSession, createPortalSession } from './index'
+import { getPlanById, getPackById } from '@/lib/credits/config'
 
 const prisma = new PrismaClient()
 
 /**
- * 创建订阅结账会话
+ * Create a Stripe Checkout session for a subscription plan or credit pack.
+ * Looks up Price IDs from config (no PlanDefinition table needed).
  */
 export async function createBillingCheckout(params: {
   userId: string
-  planId: string
+  planId: string      // plan_starter | plan_growth | plan_pro | pack_500 | pack_1200 | ...
   successUrl: string
   cancelUrl: string
 }) {
   const { userId, planId, successUrl, cancelUrl } = params
 
-  // 1. 获取用户信息（需要从 auth 获取 email）
-  // 这里简化处理，实际应该从 token 中获取
+  // Resolve Price ID from config — no DB lookup needed
+  const plan = getPlanById(planId)
+  const pack = getPackById(planId)
+  const priceId = plan?.stripePriceId ?? pack?.stripePriceId
+
+  if (!priceId) {
+    throw new Error(`Unknown plan/pack ID: ${planId}`)
+  }
+
   const userEmail = await getUserEmail(userId)
 
-  // 2. 获取套餐定义
-  const plan = await prisma.planDefinition.findUnique({
-    where: { id: planId },
-  })
-
-  if (!plan) {
-    throw new Error(`套餐不存在：${planId}`)
-  }
-
-  if (!plan.isActive) {
-    throw new Error(`套餐已停用：${planId}`)
-  }
-
-  // 3. 创建或获取 Stripe Customer
+  // Get or create Stripe Customer
   let billingCustomer = await prisma.billingCustomer.findUnique({
     where: { userId },
   })
@@ -40,8 +36,6 @@ export async function createBillingCheckout(params: {
 
   if (!stripeCustomerId) {
     stripeCustomerId = await createOrGetCustomer(userId, userEmail)
-
-    // 创建本地计费客户记录
     billingCustomer = await prisma.billingCustomer.create({
       data: {
         userId,
@@ -51,16 +45,15 @@ export async function createBillingCheckout(params: {
     })
   }
 
-  // 4. 创建 Checkout Session
   const session = await createCheckoutSession({
     customerId: stripeCustomerId,
-    priceId: plan.stripePriceId,
+    priceId,
     successUrl,
     cancelUrl,
   })
 
   if (!session.url) {
-    throw new Error('无法创建结账会话')
+    throw new Error('Failed to create Stripe Checkout session')
   }
 
   return {
@@ -70,7 +63,7 @@ export async function createBillingCheckout(params: {
 }
 
 /**
- * 创建计费门户会话
+ * Create a Stripe Billing Portal session so users can manage their subscription.
  */
 export async function createBillingPortal(params: {
   userId: string
@@ -78,39 +71,32 @@ export async function createBillingPortal(params: {
 }) {
   const { userId, returnUrl } = params
 
-  // 1. 获取计费客户
   const billingCustomer = await prisma.billingCustomer.findUnique({
     where: { userId },
   })
 
   if (!billingCustomer) {
-    throw new Error('用户未创建计费账户')
+    throw new Error('No billing account found for this user')
   }
 
-  // 2. 创建 Portal Session
   const session = await createPortalSession({
     customerId: billingCustomer.stripeCustomerId,
     returnUrl,
   })
 
-  return {
-    portalUrl: session.url,
-  }
+  return { portalUrl: session.url }
 }
 
 /**
- * 获取用户计费摘要
+ * Get billing summary for the sidebar credit widget and billing page.
  */
 export async function getBillingSummary(userId: string) {
-  // 1. 获取计费客户
   const billingCustomer = await prisma.billingCustomer.findUnique({
     where: { userId },
     include: {
       subscriptions: {
         where: { status: 'ACTIVE' },
-        include: {
-          plan: true,
-        },
+        include: { plan: true },
         orderBy: { createdAt: 'desc' },
         take: 1,
       },
@@ -130,11 +116,12 @@ export async function getBillingSummary(userId: string) {
         totalRemaining: 0,
         currentPeriodStart: null,
         currentPeriodEnd: null,
+        allocated: 0,
+        consumed: 0,
       },
     }
   }
 
-  // 2. 获取当前周期积分
   const now = new Date()
   const currentPeriod = await prisma.creditAllocationPeriod.findFirst({
     where: {
@@ -146,7 +133,6 @@ export async function getBillingSummary(userId: string) {
     orderBy: { periodStart: 'desc' },
   })
 
-  // 3. 计算总剩余积分
   const allPeriods = await prisma.creditAllocationPeriod.findMany({
     where: {
       billingCustomerId: billingCustomer.id,
@@ -154,10 +140,7 @@ export async function getBillingSummary(userId: string) {
     },
   })
 
-  const totalRemaining = allPeriods.reduce(
-    (sum, period) => sum + period.remainingCredits,
-    0
-  )
+  const totalRemaining = allPeriods.reduce((sum, p) => sum + p.remainingCredits, 0)
 
   return {
     hasSubscription: true,
@@ -168,10 +151,10 @@ export async function getBillingSummary(userId: string) {
     },
     credits: {
       totalRemaining,
-      currentPeriodStart: currentPeriod?.periodStart || null,
-      currentPeriodEnd: currentPeriod?.periodEnd || null,
-      allocated: currentPeriod?.allocatedCredits || 0,
-      consumed: currentPeriod?.consumedCredits || 0,
+      currentPeriodStart: currentPeriod?.periodStart ?? null,
+      currentPeriodEnd: currentPeriod?.periodEnd ?? null,
+      allocated: currentPeriod?.allocatedCredits ?? 0,
+      consumed: currentPeriod?.consumedCredits ?? 0,
     },
     subscription: {
       status: subscription.status,
@@ -183,7 +166,7 @@ export async function getBillingSummary(userId: string) {
 }
 
 /**
- * 获取积分账本
+ * Get credit ledger entries for the billing page history.
  */
 export async function getCreditLedger(params: {
   userId: string
@@ -206,87 +189,32 @@ export async function getCreditLedger(params: {
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
-      include: {
-        subscription: {
-          select: {
-            plan: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
     }),
     prisma.creditLedger.count({
       where: { billingCustomerId: billingCustomer.id },
     }),
   ])
 
-  return {
-    entries,
-    total,
-    hasMore: offset + entries.length < total,
-  }
+  return { entries, total, hasMore: offset + entries.length < total }
 }
 
 /**
- * 获取使用量记录
- */
-export async function getUsageRecords(params: {
-  userId: string
-  featureType?: string
-  limit?: number
-}) {
-  const { userId, featureType, limit = 50 } = params
-
-  const billingCustomer = await prisma.billingCustomer.findUnique({
-    where: { userId },
-  })
-
-  if (!billingCustomer) {
-    return []
-  }
-
-  const where: any = {
-    billingCustomerId: billingCustomer.id,
-  }
-
-  if (featureType) {
-    where.featureType = featureType
-  }
-
-  return prisma.usageRecord.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  })
-}
-
-/**
- * 消耗积分
+ * Deduct credits for a feature usage. Enforces balance check atomically.
  */
 export async function consumeCredits(params: {
   userId: string
   featureType: string
   quantity: number
   creditsPerUnit: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, string | number | boolean | null>
 }) {
   const { userId, featureType, quantity, creditsPerUnit, metadata } = params
   const totalCredits = quantity * creditsPerUnit
 
   return prisma.$transaction(async (tx) => {
-    // 1. 获取计费客户
-    const billingCustomer = await tx.billingCustomer.findUnique({
-      where: { userId },
-    })
+    const billingCustomer = await tx.billingCustomer.findUnique({ where: { userId } })
+    if (!billingCustomer) throw new Error('No billing account found')
 
-    if (!billingCustomer) {
-      throw new Error('用户未创建计费账户')
-    }
-
-    // 2. 检查当前周期剩余积分
     const now = new Date()
     const currentPeriod = await tx.creditAllocationPeriod.findFirst({
       where: {
@@ -297,17 +225,11 @@ export async function consumeCredits(params: {
       orderBy: { periodStart: 'desc' },
     })
 
-    if (!currentPeriod) {
-      throw new Error('当前无有效积分周期')
-    }
-
+    if (!currentPeriod) throw new Error('No active credit period')
     if (currentPeriod.remainingCredits < totalCredits) {
-      throw new Error(
-        `积分不足：需要${totalCredits}，剩余${currentPeriod.remainingCredits}`
-      )
+      throw new Error(`Insufficient credits: need ${totalCredits}, have ${currentPeriod.remainingCredits}`)
     }
 
-    // 3. 更新周期记录
     await tx.creditAllocationPeriod.update({
       where: { id: currentPeriod.id },
       data: {
@@ -316,28 +238,24 @@ export async function consumeCredits(params: {
       },
     })
 
-    // 4. 计算新余额
     const previousLedger = await tx.creditLedger.findFirst({
       where: { billingCustomerId: billingCustomer.id },
       orderBy: { createdAt: 'desc' },
     })
 
-    const previousBalance = previousLedger?.balanceAfter ?? 0
-    const newBalance = previousBalance - totalCredits
+    const newBalance = (previousLedger?.balanceAfter ?? 0) - totalCredits
 
-    // 5. 创建积分账本记录
     await tx.creditLedger.create({
       data: {
         billingCustomerId: billingCustomer.id,
         amount: -totalCredits,
         balanceAfter: newBalance,
         type: 'API_CONSUMPTION',
-        description: `${featureType} 使用 - ${quantity} 次`,
+        description: `${featureType} x${quantity}`,
         metadata,
       },
     })
 
-    // 6. 创建使用量记录
     await tx.usageRecord.create({
       data: {
         billingCustomerId: billingCustomer.id,
@@ -348,17 +266,14 @@ export async function consumeCredits(params: {
       },
     })
 
-    return {
-      success: true,
-      consumed: totalCredits,
-      balance: newBalance,
-    }
+    return { success: true, consumed: totalCredits, balance: newBalance }
   })
 }
 
-// Helper function - 实际应该从 auth 系统获取
 async function getUserEmail(userId: string): Promise<string> {
-  // TODO: 从 Supabase Auth 或数据库获取用户邮箱
-  // 这里返回一个占位符
-  return `user_${userId}@example.com`
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  })
+  return user?.email ?? `user_${userId}@vicividi.com`
 }

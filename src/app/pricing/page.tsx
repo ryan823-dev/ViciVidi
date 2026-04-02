@@ -121,7 +121,7 @@ export default function PricingPage() {
         {/* ─── Plan cards ─── */}
         <div className="grid md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => {
-            const price = yearly ? plan.yearlyPriceCents : plan.monthlyPriceCents
+            const price = yearly ? plan.yearlyDisplayPriceCents : plan.monthlyPriceCents
             const priceStr = `$${Math.round(price / 100)}`
 
             return (
@@ -307,13 +307,16 @@ export default function PricingPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Zap className="h-4 w-4 text-amber-500" />
-                  <span className="font-semibold">{pack.credits.toLocaleString()} credits</span>
+                  <span className="font-semibold">{pack.totalCredits.toLocaleString()} credits</span>
+                  {pack.bonusCredits > 0 && (
+                    <span className="text-xs text-emerald-600 font-medium">+{pack.bonusCredits} bonus</span>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  ${(pack.priceCents / 100 / pack.credits).toFixed(3)}/credit
+                  ${(pack.priceCents / 100 / pack.totalCredits).toFixed(3)}/credit
                 </div>
                 <Badge variant="secondary" className="w-fit text-emerald-700 bg-emerald-50 border-emerald-200">
-                  Save {pack.savingsPct}% vs overage
+                  ${(pack.unitPriceCents / 100).toFixed(2)}/cr vs ${(0.25).toFixed(2)} overage
                 </Badge>
                 <Button
                   variant={pack.highlighted ? 'default' : 'outline'}

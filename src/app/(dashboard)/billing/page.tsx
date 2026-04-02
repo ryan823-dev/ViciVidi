@@ -351,9 +351,12 @@ export default function BillingDashboard() {
                     </div>
                     <div className="flex items-center gap-1 text-sm font-medium">
                       <Zap className="h-3.5 w-3.5 text-amber-500" />
-                      {pack.credits.toLocaleString()} credits
+                      {pack.totalCredits.toLocaleString()} credits
+                      {pack.bonusCredits > 0 && (
+                        <span className="text-xs text-emerald-600">+{pack.bonusCredits}</span>
+                      )}
                     </div>
-                    <div className="text-xs text-emerald-600 font-medium">Save {pack.savingsPct}% vs overage</div>
+                    <div className="text-xs text-emerald-600 font-medium">${(pack.unitPriceCents / 100).toFixed(2)}/cr</div>
                     <Button
                       size="sm"
                       variant={pack.highlighted ? 'default' : 'outline'}
