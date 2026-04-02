@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,315 +22,286 @@ import {
   Mail,
   Phone,
   Star,
-  AlertTriangle,
   Clock,
   Target,
   Zap,
   Flame,
   Sparkles,
   ArrowUpRight,
-  ArrowDownRight
+  Minus,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
-interface IntentSignal {
-  id: string
-  companyName: string
-  domain: string
-  signalType: 'page_view' | 'pricing_view' | 'demo_request' | 'feature_usage' | 'email_open' | 'email_click'
-  intensity: number
-  score: number
-  timestamp: string
-  status: 'new' | 'reviewed' | 'actioned'
-}
-
+// ===== 类型定义 =====
 interface IntentScore {
-  companyId: string
+  leadId: string
   companyName: string
   domain: string
+  status: string
   totalScore: number
   scoreLevel: 'low' | 'medium' | 'high' | 'critical'
   signalCount: number
   recentSignals: number
   trend: 'up' | 'down' | 'stable'
-  topSignals: Array<{
-    type: string
-    score: number
-    timestamp: string
-  }>
+  topSignals: Array<{ type: string; score: number; timestamp: string }>
 }
 
-// 模拟数据
-const MOCK_INTENT_SCORES: IntentScore[] = [
-  {
-    companyId: '1',
-    companyName: 'Acme Corporation',
-    domain: 'acme.com',
-    totalScore: 285,
-    scoreLevel: 'critical',
-    signalCount: 24,
-    recentSignals: 12,
-    trend: 'up',
-    topSignals: [
-      { type: 'demo_request', score: 50, timestamp: '2 小时前' },
-      { type: 'pricing_view', score: 30, timestamp: '3 小时前' },
-      { type: 'page_view', score: 10, timestamp: '5 小时前' },
-    ],
-  },
-  {
-    companyId: '2',
-    companyName: 'TechStart Inc',
-    domain: 'techstart.io',
-    totalScore: 156,
-    scoreLevel: 'high',
-    signalCount: 15,
-    recentSignals: 8,
-    trend: 'up',
-    topSignals: [
-      { type: 'pricing_view', score: 30, timestamp: '1 小时前' },
-      { type: 'feature_usage', score: 25, timestamp: '4 小时前' },
-    ],
-  },
-  {
-    companyId: '3',
-    companyName: 'Global Solutions',
-    domain: 'globalsolutions.com',
-    totalScore: 78,
-    scoreLevel: 'medium',
-    signalCount: 8,
-    recentSignals: 3,
-    trend: 'stable',
-    topSignals: [
-      { type: 'page_view', score: 10, timestamp: '6 小时前' },
-    ],
-  },
-]
+interface LiveSignal {
+  id: string
+  companyName: string
+  domain: string
+  leadId: string | null
+  signalType: string
+  intensity: number
+  score: number
+  timestamp: string
+  status: 'new'
+}
 
-const MOCK_SIGNALS: IntentSignal[] = [
-  { id: '1', companyName: 'Acme Corporation', domain: 'acme.com', signalType: 'demo_request', intensity: 0.9, score: 50, timestamp: '10 分钟前', status: 'new' },
-  { id: '2', companyName: 'TechStart Inc', domain: 'techstart.io', signalType: 'pricing_view', intensity: 0.7, score: 30, timestamp: '25 分钟前', status: 'new' },
-  { id: '3', companyName: 'Acme Corporation', domain: 'acme.com', signalType: 'pricing_view', intensity: 0.7, score: 30, timestamp: '1 小时前', status: 'reviewed' },
-  { id: '4', companyName: 'Global Solutions', domain: 'globalsolutions.com', signalType: 'page_view', intensity: 0.3, score: 10, timestamp: '2 小时前', status: 'reviewed' },
-  { id: '5', companyName: 'Innovation Labs', domain: 'innovationlabs.ai', signalType: 'email_click', intensity: 0.5, score: 15, timestamp: '3 小时前', status: 'actioned' },
-]
+interface DashboardStats {
+  totalSignals: number
+  criticalLeads: number
+  highLeads: number
+  newSignals24h: number
+}
 
+interface DashboardData {
+  intentScores: IntentScore[]
+  signals: LiveSignal[]
+  stats: DashboardStats
+}
+
+// ===== 信号类型配置 =====
+const SIGNAL_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
+  page_view:     { label: '页面浏览', icon: Eye,            color: 'text-blue-500' },
+  pricing_view:  { label: '查看定价', icon: Target,         color: 'text-orange-500' },
+  demo_request:  { label: '申请 Demo', icon: Sparkles,      color: 'text-purple-500' },
+  feature_usage: { label: '功能使用', icon: MousePointerClick, color: 'text-green-500' },
+  email_open:    { label: '打开邮件', icon: Mail,           color: 'text-teal-500' },
+  email_click:   { label: '点击邮件', icon: MousePointerClick, color: 'text-cyan-500' },
+  contact_form:  { label: '联系表单', icon: Phone,          color: 'text-rose-500' },
+}
+
+// ===== 评分级别配置 =====
 const SCORE_LEVEL_CONFIG = {
-  low: { label: '低', color: 'text-gray-600', bg: 'bg-gray-500/10', border: 'border-gray-500/20', icon: Activity },
-  medium: { label: '中', color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Target },
-  high: { label: '高', color: 'text-orange-600', bg: 'bg-orange-500/10', border: 'border-orange-500/20', icon: Flame },
-  critical: { label: '紧急', color: 'text-red-600', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: AlertTriangle },
-}
-
-const SIGNAL_TYPE_CONFIG = {
-  page_view: { label: '页面浏览', icon: Eye, color: 'text-blue-500' },
-  pricing_view: { label: '查看价格', icon: Target, color: 'text-orange-500' },
-  demo_request: { label: '演示请求', icon: Star, color: 'text-red-500' },
-  feature_usage: { label: '功能使用', icon: Zap, color: 'text-purple-500' },
-  email_open: { label: '邮件打开', icon: Mail, color: 'text-green-500' },
-  email_click: { label: '邮件点击', icon: MousePointerClick, color: 'text-teal-500' },
+  critical: { label: '极高意向', color: 'text-red-600',    bg: 'bg-red-500/10',    border: 'border-red-500/20',    icon: Flame },
+  high:     { label: '高意向',   color: 'text-orange-600', bg: 'bg-orange-500/10', border: 'border-orange-500/20', icon: Zap },
+  medium:   { label: '中意向',   color: 'text-yellow-600', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', icon: Star },
+  low:      { label: '低意向',   color: 'text-gray-500',   bg: 'bg-gray-500/10',   border: 'border-gray-500/20',   icon: Activity },
 }
 
 export default function IntentDashboardPage() {
-  const [intentScores] = useState<IntentScore[]>(MOCK_INTENT_SCORES)
-  const [signals] = useState<IntentSignal[]>(MOCK_SIGNALS)
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [filterLevel, setFilterLevel] = useState<string>('all')
 
-  const stats = {
-    total: intentScores.length,
-    critical: intentScores.filter(s => s.scoreLevel === 'critical').length,
-    high: intentScores.filter(s => s.scoreLevel === 'high').length,
-    trending: intentScores.filter(s => s.trend === 'up').length,
-  }
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
+    try {
+      const res = await fetch('/api/intent/dashboard?days=30')
+      if (!res.ok) throw new Error('Failed to fetch')
+      const json = await res.json()
+      setData(json)
+    } catch {
+      toast.error('加载意图数据失败')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
 
-  return (
-    <div className="space-y-8">
-      {/* 头部 */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-background p-8 border border-orange-500/20 shadow-glow-sm">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-3xl opacity-30" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-red-500/20 to-transparent rounded-full blur-3xl opacity-30" />
-        
-        <div className="relative space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
-            <Flame className="h-3.5 w-3.5 text-orange-500" />
-            <span className="text-xs font-medium text-orange-500">Real-time Intent Data</span>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">
-            意图数据仪表板
-          </h1>
-          <p className="text-muted-foreground text-sm max-w-2xl">
-            实时追踪客户购买意图，识别高意向线索，提升转化率
-          </p>
+  useEffect(() => {
+    fetchData()
+    // 每 2 分钟自动刷新
+    const interval = setInterval(() => fetchData(true), 2 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [fetchData])
+
+  const filteredScores = data?.intentScores.filter(
+    (s) => filterLevel === 'all' || s.scoreLevel === filterLevel
+  ) ?? []
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <RefreshCw className="h-5 w-5 animate-spin" />
+          <span>加载意图数据...</span>
         </div>
       </div>
+    )
+  }
 
-      {/* 统计卡片 */}
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card className="relative overflow-hidden border-0 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">监控公司数</p>
-                <p className="text-4xl font-bold">{stats.total}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20">
-                <Activity className="h-6 w-6 text-blue-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  const stats = data?.stats
 
-        <Card className="relative overflow-hidden border-0 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">紧急意图</p>
-                <p className="text-4xl font-bold text-red-500">{stats.critical}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-500/20">
-                <AlertTriangle className="h-6 w-6 text-red-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-0 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">高意向</p>
-                <p className="text-4xl font-bold text-orange-500">{stats.high}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20">
-                <Flame className="h-6 w-6 text-orange-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-0 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">上升趋势</p>
-                <p className="text-4xl font-bold text-green-500">{stats.trending}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20">
-                <TrendingUp className="h-6 w-6 text-green-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  return (
+    <div className="space-y-6">
+      {/* 页头 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">意图雷达</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            实时追踪潜在客户的购买意图信号，优先跟进高意向线索
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fetchData(true)}
+          disabled={refreshing}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          刷新
+        </Button>
       </div>
 
-      {/* 意图评分排行榜 */}
+      {/* 统计卡 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          title="极高意向线索"
+          value={stats?.criticalLeads ?? 0}
+          icon={Flame}
+          color="text-red-500"
+          bg="bg-red-500/10"
+          desc="需立即跟进"
+        />
+        <StatCard
+          title="高意向线索"
+          value={stats?.highLeads ?? 0}
+          icon={Zap}
+          color="text-orange-500"
+          bg="bg-orange-500/10"
+          desc="24小时内跟进"
+        />
+        <StatCard
+          title="24h 新信号"
+          value={stats?.newSignals24h ?? 0}
+          icon={Activity}
+          color="text-blue-500"
+          bg="bg-blue-500/10"
+          desc="最近一天内"
+        />
+        <StatCard
+          title="累计信号总量"
+          value={stats?.totalSignals ?? 0}
+          icon={Target}
+          color="text-purple-500"
+          bg="bg-purple-500/10"
+          desc="近30天"
+        />
+      </div>
+
+      {/* 意图排行榜 */}
       <Card className="border-0 shadow-xl">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                意图评分排行榜
+                <Flame className="h-5 w-5 text-red-500" />
+                意图排行榜
               </CardTitle>
-              <CardDescription>
-                按意图分数排序的公司列表
-              </CardDescription>
+              <CardDescription>按综合意图分排序，结合时间衰减加权</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              查看全部
-            </Button>
+            {/* 筛选按钮 */}
+            <div className="flex gap-2 flex-wrap">
+              {['all', 'critical', 'high', 'medium', 'low'].map((level) => (
+                <Button
+                  key={level}
+                  variant={filterLevel === level ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterLevel(level)}
+                  className="text-xs"
+                >
+                  {level === 'all' ? '全部' : SCORE_LEVEL_CONFIG[level as keyof typeof SCORE_LEVEL_CONFIG]?.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>公司</TableHead>
-                <TableHead>意图分数</TableHead>
-                <TableHead>等级</TableHead>
-                <TableHead>信号数</TableHead>
-                <TableHead>近期信号</TableHead>
-                <TableHead>趋势</TableHead>
-                <TableHead>Top 信号</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {intentScores.map((score) => {
-                const config = SCORE_LEVEL_CONFIG[score.scoreLevel]
-                const Icon = config.icon
-                
-                return (
-                  <TableRow key={score.companyId} className="hover:bg-primary/5 transition-all duration-200">
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-semibold">{score.companyName}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Activity className="h-3 w-3" />
-                          {score.domain}
+          {filteredScores.length === 0 ? (
+            <EmptyState message="暂无符合条件的意图数据" />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>公司</TableHead>
+                  <TableHead>意向级别</TableHead>
+                  <TableHead>意图分</TableHead>
+                  <TableHead>信号数</TableHead>
+                  <TableHead>7天趋势</TableHead>
+                  <TableHead>最新信号</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredScores.map((item) => {
+                  const levelCfg = SCORE_LEVEL_CONFIG[item.scoreLevel]
+                  const LevelIcon = levelCfg.icon
+                  return (
+                    <TableRow key={item.leadId} className="hover:bg-primary/5 transition-colors">
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{item.companyName}</div>
+                          {item.domain && (
+                            <div className="text-xs text-muted-foreground">{item.domain}</div>
+                          )}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl font-bold text-primary">{score.totalScore}</div>
-                        <div className="w-24">
-                          <Progress value={Math.min(100, (score.totalScore / 300) * 100)} className="h-2" />
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`${levelCfg.bg} ${levelCfg.color} ${levelCfg.border} gap-1`}
+                        >
+                          <LevelIcon className="h-3 w-3" />
+                          {levelCfg.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-bold text-primary">{item.totalScore}</div>
+                          <Progress
+                            value={Math.min(100, (item.totalScore / 300) * 100)}
+                            className="h-1.5 w-20"
+                          />
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`${config.bg} ${config.border}`}>
-                        <Icon className={`h-3 w-3 mr-1 ${config.color}`} />
-                        <span className={config.color}>{config.label}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{score.signalCount}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
-                        {score.recentSignals} (7 天)
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {score.trend === 'up' ? (
-                        <div className="flex items-center gap-1 text-green-600">
-                          <ArrowUpRight className="h-4 w-4" />
-                          <span className="text-sm font-medium">上升</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <span className="font-medium">{item.signalCount}</span>
+                          <span className="text-muted-foreground text-xs ml-1">
+                            ({item.recentSignals} 近7天)
+                          </span>
                         </div>
-                      ) : score.trend === 'down' ? (
-                        <div className="flex items-center gap-1 text-red-600">
-                          <ArrowDownRight className="h-4 w-4" />
-                          <span className="text-sm font-medium">下降</span>
+                      </TableCell>
+                      <TableCell>
+                        <TrendBadge trend={item.trend} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {item.topSignals.slice(0, 2).map((sig, i) => {
+                            const sigCfg = SIGNAL_TYPE_CONFIG[sig.type]
+                            return (
+                              <div key={i} className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <span className={sigCfg?.color ?? ''}>●</span>
+                                <span>{sigCfg?.label ?? sig.type}</span>
+                                <span className="text-primary font-medium">+{sig.score}</span>
+                                <span>· {sig.timestamp}</span>
+                              </div>
+                            )
+                          })}
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Activity className="h-4 w-4" />
-                          <span className="text-sm font-medium">稳定</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {score.topSignals.slice(0, 2).map((signal, idx) => {
-                          const SignalConfig = SIGNAL_TYPE_CONFIG[signal.type as keyof typeof SIGNAL_TYPE_CONFIG]
-                          const SignalIcon = SignalConfig?.icon || Activity
-                          
-                          return (
-                            <div key={idx} className="flex items-center gap-2 text-xs">
-                              <SignalIcon className={`h-3 w-3 ${SignalConfig?.color}`} />
-                              <span className="text-muted-foreground">{signal.score}分</span>
-                              <span className="text-muted-foreground/70">{signal.timestamp}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -338,73 +309,129 @@ export default function IntentDashboardPage() {
       <Card className="border-0 shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-orange-500" />
                 实时意图信号
               </CardTitle>
-              <CardDescription>
-                最新的客户行为信号
-              </CardDescription>
+              <CardDescription>过去 24 小时内的客户行为信号</CardDescription>
             </div>
-            <Badge variant="outline" className="animate-pulse">
-              <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+            <Badge variant="outline" className="animate-pulse gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
               实时更新
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {signals.map((signal) => {
-              const SignalConfig = SIGNAL_TYPE_CONFIG[signal.signalType]
-              const SignalIcon = SignalConfig?.icon || Eye
-              
-              return (
-                <div 
-                  key={signal.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-primary/10 hover:bg-primary/5 transition-all duration-200"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg bg-gradient-to-br ${SignalConfig?.color.replace('text-', 'from-')}/10 to-${SignalConfig?.color.replace('text-', 'from-')}/5 border border-${SignalConfig?.color.replace('text-', 'from-')}/20`}>
-                      <SignalIcon className={`h-5 w-5 ${SignalConfig?.color}`} />
+          {(data?.signals ?? []).length === 0 ? (
+            <EmptyState message="近24小时暂无意图信号" />
+          ) : (
+            <div className="space-y-3">
+              {data!.signals.map((signal) => {
+                const sigCfg = SIGNAL_TYPE_CONFIG[signal.signalType]
+                const SigIcon = sigCfg?.icon ?? Eye
+                return (
+                  <div
+                    key={signal.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-primary/10 hover:bg-primary/5 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 rounded-lg bg-primary/5 border border-primary/10">
+                        <SigIcon className={`h-4 w-4 ${sigCfg?.color ?? 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="font-medium text-sm">{signal.companyName}</div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-xs py-0">
+                            {sigCfg?.label ?? signal.signalType}
+                          </Badge>
+                          <span>·</span>
+                          <span>{signal.timestamp}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="font-medium">{signal.companyName}</div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-xs">
-                          {SignalConfig?.label}
-                        </Badge>
-                        <span>•</span>
-                        <span>{signal.timestamp}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-base font-bold text-primary">+{signal.score}</div>
+                        <div className="text-xs text-muted-foreground">意图分</div>
+                      </div>
+                      <div className="w-20">
+                        <Progress value={signal.intensity * 100} className="h-1.5" />
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="text-right space-y-1">
-                      <div className="text-lg font-bold text-primary">{signal.score}</div>
-                      <div className="text-xs text-muted-foreground">意图分</div>
-                    </div>
-                    <div className="w-24">
-                      <Progress value={signal.intensity * 100} className="h-2" />
-                    </div>
-                    <Badge 
-                      variant="outline" 
-                      className={
-                        signal.status === 'new' ? 'bg-green-500/10 text-green-600 border-green-500/20' :
-                        signal.status === 'reviewed' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
-                        'bg-purple-500/10 text-purple-600 border-purple-500/20'
-                      }
-                    >
-                      {signal.status === 'new' ? '新' : signal.status === 'reviewed' ? '已查看' : '已处理'}
-                    </Badge>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+// ===== 子组件 =====
+
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+  bg,
+  desc,
+}: {
+  title: string
+  value: number
+  icon: any
+  color: string
+  bg: string
+  desc: string
+}) {
+  return (
+    <Card className="border-0 shadow-md">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold mt-1">{value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+          </div>
+          <div className={`p-2.5 rounded-xl ${bg}`}>
+            <Icon className={`h-5 w-5 ${color}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TrendBadge({ trend }: { trend: 'up' | 'down' | 'stable' }) {
+  if (trend === 'up') {
+    return (
+      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+        <TrendingUp className="h-3 w-3" /> 上升
+      </Badge>
+    )
+  }
+  if (trend === 'down') {
+    return (
+      <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 gap-1">
+        <TrendingDown className="h-3 w-3" /> 下降
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant="outline" className="bg-gray-500/10 text-gray-500 border-gray-500/20 gap-1">
+      <Minus className="h-3 w-3" /> 稳定
+    </Badge>
+  )
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+      <AlertTriangle className="h-8 w-8 opacity-40" />
+      <p className="text-sm">{message}</p>
     </div>
   )
 }

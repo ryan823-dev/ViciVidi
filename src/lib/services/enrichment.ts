@@ -1,19 +1,19 @@
 /**
- * 数据丰富引擎 v3.1
- * 
+ * 数据丰富引擎 v3.2
+ *
  * 优先级架构（100% 免费/有免费额度，最小化成本）：
- * 
+ *
  * 第1层：官方/公共免费源（完全免费）
  *   ├── SEC/EDGAR（美国上市公司，无需API Key）
  *   ├── Companies House API（英国公司，免费）
  *   └── 企查查/天眼查（中国企业，按量付费可选）
- * 
+ *
  * 第2层：公共网页抓取（自建，免费）
  *   ├── 官网首页/产品页/定价页
  *   ├── About/Team/Leadership
  *   ├── Careers（招聘信号）
  *   └── Blog/News/Press
- * 
+ *
  * 第3层：有免费额度的 API
  *   ├── Apollo.io（公司+联系人，50次/月免费）
  *   ├── Skrapp.io（邮箱查找，100次/月免费）
@@ -21,6 +21,11 @@
  *   ├── Google Places（公司信息，$200/月免费额度）
  *   ├── Brave Search（搜索/邮箱，2000次/月免费）
  *   └── Firecrawl（复杂站点，500次/月免费）
+ *
+ * 并发策略（v3.2 优化）：
+ *   - 第1层（官方源）+ 第2层（网页抓取）完全并发
+ *   - 第3层分为 A/B/C 三组，组内并发，组间按依赖顺序执行
+ *   - 批量处理从串行改为分批并发（每批 BATCH_SIZE 个）
  */
 
 import { enrichFromCompaniesHouse } from './companies-house'
@@ -34,6 +39,9 @@ import { enrichFromGooglePlaces } from './google-places'
 import { findEmailsFromHunter } from './hunter'
 import { enrichFromFirecrawl } from './firecrawl'
 import { prisma } from '@/lib/db'
+
+// ===== 并发批次大小（防止 rate limit） =====
+const BATCH_SIZE = 5
 
 interface EnrichmentOptions {
   usePaidSources?: boolean
@@ -94,47 +102,53 @@ export async function enrichCompanyData(
     const layers = { official: false, webScrape: false, paid: false }
     const sourcesUsed: string[] = []
 
-    // ============ 第1层：官方/公共免费源 ============
+    // ===== 第1层 + 第2层：全部并发（无相互依赖） =====
+    const isChinese = isChineseDomain(domain)
+
+    // 构建官方源任务（根据 region）
+    const officialTaskDefs: Array<{ task: Promise<any>; label: string }> = []
     if (!skipOfficialSources) {
-      // 中国企业
-      if (region === 'CN' || (region === 'AUTO' && isChineseDomain(domain))) {
-        const cnResult = await enrichChineseCompany(company.name || domain)
-        if (cnResult) {
-          mergeResults(updates, cnResult.data)
-          newSources.push(...cnResult.sources)
-          sourcesAdded += cnResult.sources.length
-          layers.official = true
-          sourcesUsed.push('Chinese Registry')
-        }
+      if (region === 'CN' || (region === 'AUTO' && isChinese)) {
+        officialTaskDefs.push({
+          task: enrichChineseCompany(company.name || domain).catch(() => null),
+          label: 'Chinese Registry',
+        })
       }
-
-      // 英国公司
-      if (!layers.official && (region === 'UK' || region === 'AUTO')) {
-        const ukResult = await enrichFromCompaniesHouse(domain, company.name || undefined)
-        if (ukResult) {
-          mergeResults(updates, ukResult.data)
-          newSources.push(...ukResult.sources)
-          sourcesAdded += ukResult.sources.length
-          layers.official = true
-          sourcesUsed.push('Companies House')
-        }
+      if (region === 'UK' || region === 'AUTO') {
+        officialTaskDefs.push({
+          task: enrichFromCompaniesHouse(domain, company.name || undefined).catch(() => null),
+          label: 'Companies House',
+        })
       }
-
-      // 美国上市公司
-      if (!layers.official && (region === 'US' || region === 'AUTO')) {
-        const secResult = await enrichFromSEC(domain)
-        if (secResult) {
-          mergeResults(updates, secResult.data)
-          newSources.push(...secResult.sources)
-          sourcesAdded += secResult.sources.length
-          layers.official = true
-          sourcesUsed.push('SEC EDGAR')
-        }
+      if (region === 'US' || region === 'AUTO') {
+        officialTaskDefs.push({
+          task: enrichFromSEC(domain).catch(() => null),
+          label: 'SEC EDGAR',
+        })
       }
     }
 
-    // ============ 第2层：公共网页抓取 ============
-    const webResult = await enrichFromWebScraper(domain)
+    // 网页抓取与官方源并发
+    const webTask = enrichFromWebScraper(domain).catch(() => null)
+
+    const [officialResults, webResult] = await Promise.all([
+      Promise.allSettled(officialTaskDefs.map((d) => d.task)),
+      webTask,
+    ])
+
+    // 合并官方源结果（所有成功的源都合并，不只取第一个）
+    for (let i = 0; i < officialResults.length; i++) {
+      const r = officialResults[i]
+      if (r.status === 'fulfilled' && r.value) {
+        mergeResults(updates, r.value.data)
+        newSources.push(...r.value.sources)
+        sourcesAdded += r.value.sources.length
+        layers.official = true
+        sourcesUsed.push(officialTaskDefs[i].label)
+      }
+    }
+
+    // 合并网页抓取结果
     if (webResult) {
       mergeResults(updates, webResult.data)
       newSources.push(...webResult.sources)
@@ -143,11 +157,11 @@ export async function enrichCompanyData(
       sourcesUsed.push('Web Scraper')
     }
 
-    // ============ 第3层：高性价比付费 API ============
+    // ===== 第3层：付费 API（分组并发，组间顺序执行） =====
     if (usePaidSources && totalCost < maxCostPerCompany) {
-      // 1. Apollo.io（公司+联系人一体化，数据最全）
+      // --- 组A：Apollo（全量数据源，串行，成本最高） ---
       if (priority === 'accuracy' || !updates.email) {
-        const apolloResult = await enrichFromApollo(domain)
+        const apolloResult = await enrichFromApollo(domain).catch(() => null)
         if (apolloResult) {
           mergeResults(updates, apolloResult.data)
           newSources.push(...apolloResult.sources)
@@ -158,71 +172,68 @@ export async function enrichCompanyData(
         }
       }
 
-      // 2. Skrapp.io（邮箱查找，性价比最高，主用）
-      if (!updates.email && totalCost < maxCostPerCompany) {
-        const skrappResult = await enrichFromSkrapp(domain)
-        if (skrappResult) {
-          mergeResults(updates, skrappResult.data)
-          newSources.push(...skrappResult.sources)
-          sourcesAdded += skrappResult.sources.length
+      // --- 组B：Skrapp + Hunter（邮箱）+ Google Places（电话）—— 三者独立，并发 ---
+      if (totalCost < maxCostPerCompany) {
+        const needEmail = !updates.email
+        const needPhone = !updates.phone
+
+        const [skrappR, hunterR, placesR] = await Promise.allSettled([
+          needEmail ? enrichFromSkrapp(domain).catch(() => null) : Promise.resolve(null),
+          needEmail ? findEmailsFromHunter(domain).catch(() => null) : Promise.resolve(null),
+          needPhone ? enrichFromGooglePlaces(domain).catch(() => null) : Promise.resolve(null),
+        ])
+
+        if (skrappR.status === 'fulfilled' && skrappR.value && !updates.email) {
+          mergeResults(updates, skrappR.value.data)
+          newSources.push(...skrappR.value.sources)
+          sourcesAdded += skrappR.value.sources.length
           totalCost += 0.05
           layers.paid = true
           sourcesUsed.push('Skrapp.io')
         }
-      }
 
-      // 3. Hunter.io（邮箱查找备用，仅当 Skrapp 找不到时使用）
-      if (!updates.email && totalCost < maxCostPerCompany) {
-        const hunterResult = await findEmailsFromHunter(domain)
-        if (hunterResult) {
-          const emails = hunterResult.data.emails as any[]
-          if (emails && emails.length > 0) {
-            updates.email = emails[0].email
-          }
-          newSources.push(...hunterResult.sources)
-          sourcesAdded += hunterResult.sources.length
+        // Hunter 仅在 Skrapp 未找到 email 时使用
+        if (hunterR.status === 'fulfilled' && hunterR.value && !updates.email) {
+          const emails = (hunterR.value.data.emails as any[]) ?? []
+          if (emails.length > 0) updates.email = emails[0].email
+          newSources.push(...hunterR.value.sources)
+          sourcesAdded += hunterR.value.sources.length
           totalCost += 0.02
           layers.paid = true
           sourcesUsed.push('Hunter.io')
         }
-      }
 
-      // 4. Google Places（获取电话、地址）
-      if (!updates.phone && totalCost < maxCostPerCompany) {
-        const placesResult = await enrichFromGooglePlaces(domain)
-        if (placesResult) {
-          mergeResults(updates, placesResult.data)
-          newSources.push(...placesResult.sources)
-          sourcesAdded += placesResult.sources.length
+        if (placesR.status === 'fulfilled' && placesR.value) {
+          mergeResults(updates, placesR.value.data)
+          newSources.push(...placesR.value.sources)
+          sourcesAdded += placesR.value.sources.length
           totalCost += 0.017
           layers.paid = true
           sourcesUsed.push('Google Places')
         }
       }
 
-      // 5. Brave Search（搜索补充）
-      if (!updates.email && totalCost < maxCostPerCompany) {
-        const searchResult = await enrichFromBraveSearch(domain)
-        if (searchResult) {
-          if (searchResult.data.emails && !updates.email) {
-            const emails = searchResult.data.emails as string[]
-            updates.email = emails[0]
-          }
-          newSources.push(...searchResult.sources)
-          sourcesAdded += searchResult.sources.length
+      // --- 组C：Brave Search + Firecrawl 兜底（仍缺数据时并发） ---
+      if (!updates.email && !updates.phone && totalCost < maxCostPerCompany) {
+        const [braveR, firecrawlR] = await Promise.allSettled([
+          enrichFromBraveSearch(domain).catch(() => null),
+          !layers.webScrape ? enrichFromFirecrawl(domain).catch(() => null) : Promise.resolve(null),
+        ])
+
+        if (braveR.status === 'fulfilled' && braveR.value) {
+          const emails = (braveR.value.data.emails as string[]) ?? []
+          if (emails.length > 0 && !updates.email) updates.email = emails[0]
+          newSources.push(...braveR.value.sources)
+          sourcesAdded += braveR.value.sources.length
           totalCost += 0.005
           layers.paid = true
           sourcesUsed.push('Brave Search')
         }
-      }
 
-      // 6. Firecrawl 兜底（复杂站点）
-      if (!layers.webScrape && !updates.email && !updates.phone && totalCost < maxCostPerCompany) {
-        const firecrawlResult = await enrichFromFirecrawl(domain)
-        if (firecrawlResult) {
-          mergeResults(updates, firecrawlResult.data)
-          newSources.push(...firecrawlResult.sources)
-          sourcesAdded += firecrawlResult.sources.length
+        if (firecrawlR.status === 'fulfilled' && firecrawlR.value) {
+          mergeResults(updates, firecrawlR.value.data)
+          newSources.push(...firecrawlR.value.sources)
+          sourcesAdded += firecrawlR.value.sources.length
           totalCost += 0.01
           layers.paid = true
           sourcesUsed.push('Firecrawl')
@@ -285,9 +296,10 @@ function mergeResults(target: Record<string, unknown>, source: Record<string, un
 
 function isChineseDomain(domain: string): boolean {
   const chineseTLDs = ['.cn', '.com.cn', '.net.cn', '.org.cn', '.gov.cn', '.edu.cn']
-  return chineseTLDs.some(tld => domain.endsWith(tld))
+  return chineseTLDs.some((tld) => domain.endsWith(tld))
 }
 
+// ===== 批量丰富化（分批并发，每批 BATCH_SIZE 个） =====
 export async function enrichCompaniesBatch(
   companyIds: string[],
   options: EnrichmentOptions = {}
@@ -304,21 +316,32 @@ export async function enrichCompaniesBatch(
   const layerStats = { official: 0, webScrape: 0, paid: 0 }
   const sourceStats: Record<string, number> = {}
 
-  for (const companyId of companyIds) {
-    const result = await enrichCompanyData(companyId, options)
-    if (result.success) {
-      successCount++
-      totalCost += result.cost
-      if (result.layers.official) layerStats.official++
-      if (result.layers.webScrape) layerStats.webScrape++
-      if (result.layers.paid) layerStats.paid++
-      for (const source of result.sourcesUsed) {
-        sourceStats[source] = (sourceStats[source] || 0) + 1
+  // 分批并发（每批 BATCH_SIZE 个，批次间 500ms 间隔防止 rate limit）
+  for (let i = 0; i < companyIds.length; i += BATCH_SIZE) {
+    const batch = companyIds.slice(i, i + BATCH_SIZE)
+    const results = await Promise.allSettled(
+      batch.map((id) => enrichCompanyData(id, options))
+    )
+
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value.success) {
+        successCount++
+        totalCost += r.value.cost
+        if (r.value.layers.official) layerStats.official++
+        if (r.value.layers.webScrape) layerStats.webScrape++
+        if (r.value.layers.paid) layerStats.paid++
+        for (const source of r.value.sourcesUsed) {
+          sourceStats[source] = (sourceStats[source] || 0) + 1
+        }
+      } else {
+        failedCount++
       }
-    } else {
-      failedCount++
     }
-    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    // 批次间隔，防止触发 API rate limit
+    if (i + BATCH_SIZE < companyIds.length) {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
   }
 
   return { success: successCount, failed: failedCount, totalCost, layerStats, sourceStats }
