@@ -1,0 +1,40 @@
+# Railway 部署时忽略的文件
+
+# 开发文件
+.env
+.env.local
+.env.development
+*.log
+npm-debug.log*
+
+# 测试文件
+test/
+tests/
+*.test.js
+*.spec.js
+
+# 文档
+README.md
+deploy.sh
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Node
+node_modules/
+
+# 临时文件
+tmp/
+temp/
+*.tmp

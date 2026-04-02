@@ -1,13 +1,39 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install && npx prisma generate"
   },
   "deploy": {
-    "startCommand": "npx prisma generate && npm start",
+    "startCommand": "npm start",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 30,
+    "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
-  }
+    "restartPolicyMaxRetries": 5,
+    "numReplicas": 1
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      }
+    },
+    "development": {
+      "variables": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "debug"
+      }
+    }
+  },
+  "services": [
+    {
+      "name": "vertax-processor",
+      "source": ".",
+      "variables": {
+        "PORT": "3001",
+        "HOST": "0.0.0.0"
+      }
+    }
+  ]
 }

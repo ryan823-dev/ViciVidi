@@ -44,40 +44,48 @@ Body: {
 }
 ```
 
-## Railway 部署
+## Railway 快速部署
 
-### 1. 安装 Railway CLI
-```bash
-npm install -g @railway/cli
-```
+Railway CLI 已安装。请在终端执行以下命令：
 
-### 2. 登录并创建项目
 ```bash
+# 进入项目目录
+cd /Users/oceanlink/Documents/Qoder-1/processor-service
+
+# 步骤 1: 登录 Railway (会打开浏览器进行 OAuth 认证)
 railway login
-railway init  # 选择 Empty Project，命名为 vertax-processor
-```
 
-### 3. 设置环境变量
-在 Railway Dashboard 或使用 CLI：
-```bash
-railway variables set DATABASE_URL=<你的数据库URL>
-railway variables set OSS_REGION=oss-cn-hangzhou
-railway variables set OSS_ACCESS_KEY_ID=<OSS Key ID>
-railway variables set OSS_ACCESS_KEY_SECRET=<OSS Secret>
-railway variables set OSS_BUCKET=<Bucket名>
-railway variables set PROCESSOR_API_KEY=<安全密钥>
-railway variables set DIRECT_URL=<数据库URL>
-```
+# 步骤 2: 创建项目
+railway init
+# 选择 "Empty Project"，命名为 "vertax-processor"
 
-### 4. 部署
-```bash
+# 步骤 3: 设置环境变量 (替换为你的实际值)
+railway variables set DATABASE_URL="你的数据库URL"
+railway variables set DIRECT_URL="你的数据库URL"
+railway variables set OSS_REGION="oss-cn-hangzhou"
+railway variables set OSS_ACCESS_KEY_ID="你的OSSKeyId"
+railway variables set OSS_ACCESS_KEY_SECRET="你的OSSSecret"
+railway variables set OSS_BUCKET="你的Bucket名"
+railway variables set PROCESSOR_API_KEY="$(openssl rand -base64 32)"
+
+# 步骤 4: 部署服务
 railway up
+
+# 步骤 5: 获取服务 URL
+railway domain
+
+# 步骤 6: 验证部署
+curl https://你的域名.railway.app/health
 ```
 
-### 5. 获取 URL
-```bash
-railway domain
-```
+### GitHub 自动部署（备选方案）
+
+1. 打开 https://railway.app/dashboard
+2. 点击 "New Project" → "Deploy from GitHub repo"
+3. 选择 `ryan823-dev/vertax` 仓库
+4. 设置 Root Directory: `processor-service`
+5. 在 Variables 标签添加所有环境变量
+6. Railway 会自动部署并监控更新
 
 ## 环境变量
 

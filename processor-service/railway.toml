@@ -1,0 +1,27 @@
+# Railway configuration (TOML format)
+# https://railway.app/docs/reference/config-as-code
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npx prisma generate"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Environment variables required (set these in Railway Dashboard or CLI)
+# Required:
+# - DATABASE_URL: PostgreSQL connection string
+# - DIRECT_URL: PostgreSQL direct connection (for Prisma)
+# - OSS_REGION: Aliyun OSS region (e.g., oss-cn-hangzhou)
+# - OSS_ACCESS_KEY_ID: Aliyun OSS access key
+# - OSS_ACCESS_KEY_SECRET: Aliyun OSS secret
+# - OSS_BUCKET: Aliyun OSS bucket name
+# - PROCESSOR_API_KEY: API authentication key
+
+# Auto-configured:
+# - PORT: Railway provides automatically
+# - NODE_ENV: set to production

@@ -1,11 +1,19 @@
-# nixpacks configuration for Railway
+# Nixpacks configuration for Railway deployment
+# https://nixpacks.com/docs
+
 [phases.setup]
 
 [phases.install]
 cmds = ['npm install']
+dependsOn = ['setup']
 
 [phases.build]
 cmds = ['npx prisma generate']
+dependsOn = ['install']
 
 [start]
 cmd = 'npm start'
+
+[variables]
+NODE_ENV = 'production'
+PORT = '3001'
