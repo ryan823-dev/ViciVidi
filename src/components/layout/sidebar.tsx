@@ -14,6 +14,7 @@ import {
   LogOut,
   CreditCard,
   Users,
+  ScanSearch,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,12 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const navItems = [
+    {
+      href: '/discover',
+      label: '\u667a\u80fd\u6316\u5ba2',
+      icon: ScanSearch,
+      highlight: true,
+    },
     { href: '/leads', label: t('leads'), icon: Target },
     { href: '/companies', label: t('companies'), icon: Building2 },
     { href: '/analytics', label: t('analytics'), icon: BarChart3 },
@@ -57,7 +64,7 @@ export function Sidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo Header - Enhanced with gradient background */}
+          {/* Logo Header */}
           <div className="relative px-6 py-5 border-b bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
             <div className="flex items-center gap-3">
               <div className="relative group">
@@ -85,6 +92,30 @@ export function Sidebar() {
               const Icon = item.icon
               const isActive = pathname === item.href ||
                 (item.href !== '/dashboard' && pathname.startsWith(item.href))
+
+              if (item.highlight) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-semibold transition-all mb-1",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                    {!isActive && (
+                      <span className="ml-auto text-[9px] font-bold uppercase tracking-wide bg-primary text-primary-foreground rounded px-1 py-0.5">
+                        NEW
+                      </span>
+                    )}
+                  </Link>
+                )
+              }
 
               return (
                 <Link
