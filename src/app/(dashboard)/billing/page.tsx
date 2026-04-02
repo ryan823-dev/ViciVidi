@@ -1,112 +1,118 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  CreditCard, 
-  Zap, 
-  TrendingUp, 
-  ShoppingCart, 
-  History, 
-  BarChart3, 
+import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import {
+  CreditCard,
+  Zap,
+  TrendingUp,
+  History,
+  BarChart3,
   Download,
-  ExternalLink
-} from 'lucide-react';
+  ExternalLink,
+  ShoppingCart,
+  ArrowRight,
+  Check,
+  Sparkles,
+} from 'lucide-react'
+import { PLANS, CREDIT_PACKS, CREDIT_COSTS } from '@/lib/credits/config'
+import { cn } from '@/lib/utils'
 
 interface BillingSummary {
-  hasSubscription: boolean;
+  hasSubscription: boolean
   currentPlan?: {
-    name: string;
-    monthlyCredits: number;
-    priceCents: number;
-  };
+    name: string
+    monthlyCredits: number
+    priceCents: number
+  }
   credits: {
-    totalRemaining: number;
-    currentPeriodStart: string | null;
-    currentPeriodEnd: string | null;
-    allocated: number;
-    consumed: number;
-  };
+    totalRemaining: number
+    currentPeriodStart: string | null
+    currentPeriodEnd: string | null
+    allocated: number
+    consumed: number
+  }
   subscription?: {
-    status: string;
-    currentPeriodStart: Date;
-    currentPeriodEnd: Date;
-    cancelAtPeriodEnd: boolean;
-  };
+    status: string
+    currentPeriodStart: Date
+    currentPeriodEnd: Date
+    cancelAtPeriodEnd: boolean
+  }
 }
 
 interface CreditLedgerEntry {
-  id: string;
-  amount: number;
-  balanceAfter: number;
-  type: string;
-  description: string;
-  createdAt: string;
+  id: string
+  amount: number
+  balanceAfter: number
+  type: string
+  description: string
+  createdAt: string
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  ACTIVE: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  TRIALING: 'bg-blue-100 text-blue-700 border-blue-200',
+  PAST_DUE: 'bg-amber-100 text-amber-700 border-amber-200',
+  CANCELED: 'bg-red-100 text-red-700 border-red-200',
 }
 
 export default function BillingDashboard() {
-  const t = useTranslations('billing');
-  const tPacks = useTranslations('billing.creditPacks');
-  const tLedger = useTranslations('billing.creditLedger');
-  const tNoSub = useTranslations('billing.noSubscription');
-  
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState<BillingSummary | null>(null);
-  const [ledger, setLedger] = useState<CreditLedgerEntry[]>([]);
+  const t = useTranslations('billing')
+  const tLedger = useTranslations('billing.creditLedger')
+  const tNoSub = useTranslations('billing.noSubscription')
+
+  const [loading, setLoading] = useState(true)
+  const [summary, setSummary] = useState<BillingSummary | null>(null)
+  const [ledger, setLedger] = useState<CreditLedgerEntry[]>([])
 
   useEffect(() => {
-    loadBillingData();
-  }, []);
+    loadBillingData()
+  }, [])
 
   async function loadBillingData() {
     try {
       const [summaryRes, ledgerRes] = await Promise.all([
         fetch('/api/billing/summary'),
         fetch('/api/billing/ledger?limit=20'),
-      ]);
-
-      const summaryData = await summaryRes.json();
-      const ledgerData = await ledgerRes.json();
-
-      setSummary(summaryData);
-      setLedger(ledgerData.entries || []);
-    } catch (error) {
-      console.error('Failed to load billing data:', error);
+      ])
+      setSummary(await summaryRes.json())
+      const ld = await ledgerRes.json()
+      setLedger(ld.entries || [])
+    } catch {
+      // silent
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   async function handleBuyCredits(packId: string) {
-    try {
-      const response = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: packId }),
-      });
+    const res = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId: packId }),
+    })
+    const { checkoutUrl } = await res.json()
+    if (checkoutUrl) window.location.href = checkoutUrl
+  }
 
-      const { checkoutUrl } = await response.json();
-      window.location.href = checkoutUrl;
-    } catch (error) {
-      console.error('Failed to create checkout session:', error);
-    }
+  async function handleUpgrade(planId: string) {
+    const res = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId }),
+    })
+    const { checkoutUrl } = await res.json()
+    if (checkoutUrl) window.location.href = checkoutUrl
   }
 
   async function handleManageSubscription() {
-    try {
-      const response = await fetch('/api/billing/portal', {
-        method: 'POST',
-      });
-
-      const { portalUrl } = await response.json();
-      window.location.href = portalUrl;
-    } catch (error) {
-      console.error('Failed to create portal session:', error);
-    }
+    const res = await fetch('/api/billing/portal', { method: 'POST' })
+    const { portalUrl } = await res.json()
+    if (portalUrl) window.location.href = portalUrl
   }
 
   if (loading) {
@@ -117,246 +123,317 @@ export default function BillingDashboard() {
           <p className="text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
-    );
+    )
   }
 
+  const usedPct = summary?.credits.allocated
+    ? Math.round((summary.credits.consumed / summary.credits.allocated) * 100)
+    : 0
+  const remainingPct = summary?.currentPlan?.monthlyCredits
+    ? Math.round((summary.credits.totalRemaining / summary.currentPlan.monthlyCredits) * 100)
+    : 0
+
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 max-w-5xl">
+      {/* ─── Page header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] bg-clip-text text-transparent">
             {t('title')}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {t('subtitle')}
-          </p>
+          <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
-        <Button onClick={handleManageSubscription}>
-          <ExternalLink className="w-4 h-4 mr-2" />
-          {t('manageSubscription')}
-        </Button>
+        {summary?.hasSubscription && (
+          <Button variant="outline" onClick={handleManageSubscription} className="gap-2 shrink-0">
+            <ExternalLink className="w-4 h-4" />
+            {t('manageSubscription')}
+          </Button>
+        )}
       </div>
 
       {!summary?.hasSubscription ? (
-        // No subscription
-        <Card className="border-dashed">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">{tNoSub('title')}</CardTitle>
-            <CardDescription>
-              {tNoSub('description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center gap-4">
-            <Button size="lg" onClick={() => window.location.href = '/pricing'}>
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              {tNoSub('viewPricing')}
-            </Button>
-          </CardContent>
-        </Card>
+        /* ─── No subscription — show plan picker ─── */
+        <div className="space-y-6">
+          <Card className="border-dashed border-2 bg-muted/20">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-2xl">{tNoSub('title')}</CardTitle>
+              <CardDescription className="text-base">{tNoSub('description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center pt-0 pb-4">
+              <Badge variant="outline" className="gap-1 text-primary border-primary/30">
+                <Zap className="h-3 w-3" />
+                50 free credits included on all plans
+              </Badge>
+            </CardContent>
+          </Card>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.id}
+                className={cn(
+                  'relative rounded-xl border-2 p-6 flex flex-col gap-4',
+                  plan.highlighted ? 'border-primary bg-primary/5' : 'border-border bg-card'
+                )}
+              >
+                {plan.highlighted && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] text-white text-[11px]">
+                    <Sparkles className="h-2.5 w-2.5 mr-1" />
+                    Most Popular
+                  </Badge>
+                )}
+                <div>
+                  <div className="font-bold text-lg">{plan.name}</div>
+                  <div className="flex items-end gap-1 mt-1">
+                    <span className="text-3xl font-extrabold">
+                      ${Math.round(plan.monthlyPriceCents / 100)}
+                    </span>
+                    <span className="text-muted-foreground text-sm mb-1">/mo</span>
+                  </div>
+                </div>
+                <div className={cn(
+                  'rounded-lg p-3 text-sm',
+                  plan.highlighted ? 'bg-primary/10' : 'bg-muted/50'
+                )}>
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <Zap className="h-3.5 w-3.5 text-amber-500" />
+                    {plan.monthlyCredits.toLocaleString()} credits/mo
+                  </div>
+                </div>
+                <ul className="space-y-1.5 text-sm flex-1">
+                  {[
+                    `${plan.limits.teamSeats} seat${plan.limits.teamSeats > 1 ? 's' : ''}`,
+                    `${plan.limits.intentDomains} intent domains`,
+                    plan.limits.crmIntegrations && 'CRM integrations',
+                    plan.limits.apiAccess && 'API access',
+                  ].filter(Boolean).map((f) => (
+                    <li key={String(f)} className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      <span className="text-muted-foreground">{String(f)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={() => handleUpgrade(plan.id)}
+                  variant={plan.highlighted ? 'default' : 'outline'}
+                  className={cn(
+                    'w-full gap-2',
+                    plan.highlighted && 'bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] hover:opacity-90'
+                  )}
+                >
+                  Get started
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : (
-        // Has subscription
-        <>
-          {/* Key Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Current Plan */}
+        <div className="space-y-6">
+          {/* ─── Key metrics ─── */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            {/* Current plan */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('currentPlan')}</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Current plan</CardTitle>
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summary.currentPlan?.name}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  ${summary.currentPlan?.priceCents ? (summary.currentPlan.priceCents / 100).toFixed(0) : '0'}{t('perMonth')}
+                  ${summary.currentPlan?.priceCents ? Math.round(summary.currentPlan.priceCents / 100) : 0}/mo
                 </p>
-                <Badge className="mt-2" variant={summary.subscription?.status === 'ACTIVE' ? 'default' : 'destructive'}>
-                  {summary.subscription?.status || 'UNKNOWN'}
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'mt-2 text-xs font-medium',
+                    STATUS_COLORS[summary.subscription?.status ?? ''] ?? ''
+                  )}
+                >
+                  {summary.subscription?.status ?? 'UNKNOWN'}
                 </Badge>
               </CardContent>
             </Card>
 
-            {/* Remaining Credits */}
+            {/* Remaining credits */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('remainingCredits')}</CardTitle>
-                <Zap className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">Credits remaining</CardTitle>
+                <Zap className="h-4 w-4 text-amber-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summary.credits.totalRemaining}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('credits')}
+                <div className="text-2xl font-bold">{summary.credits.totalRemaining.toLocaleString()}</div>
+                <Progress value={remainingPct} className="mt-3 h-1.5" />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {remainingPct}% of monthly quota remaining
                 </p>
-                <Progress 
-                  value={(summary.credits.totalRemaining / summary.currentPlan!.monthlyCredits) * 100} 
-                  className="mt-2"
-                />
               </CardContent>
             </Card>
 
-            {/* Period Usage */}
+            {/* Period usage */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('periodUsage')}</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">This period</CardTitle>
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summary.credits.consumed}</div>
+                <div className="text-2xl font-bold">{summary.credits.consumed.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  / {summary.credits.allocated} {t('credits')}
+                  / {summary.credits.allocated.toLocaleString()} credits used
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.round((summary.credits.consumed / summary.credits.allocated) * 100)}% {t('used')}
-                </p>
+                <Progress value={usedPct} className="mt-3 h-1.5" />
               </CardContent>
             </Card>
           </div>
 
-          {/* Buy Credit Packs */}
+          {/* ─── Credit cost reference ─── */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>{t('needMoreCredits')}</CardTitle>
-                  <CardDescription>
-                    {t('buyCreditPacks')}
-                  </CardDescription>
-                </div>
-                <ShoppingCart className="h-6 w-6 text-primary" />
-              </div>
+              <CardTitle className="text-base">Credit usage reference</CardTitle>
+              <CardDescription>How many credits each action costs</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-4">
-                {/* Small Pack */}
-                <div className="border rounded-lg p-4 space-y-2 hover:border-primary/50 transition-colors">
-                  <div className="text-sm font-medium">{tPacks('small.name')}</div>
-                  <div className="text-2xl font-bold">$99</div>
-                  <div className="text-sm text-muted-foreground">{tPacks('small.credits')}</div>
-                  <div className="text-xs text-green-600">$0.99/credit</div>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => handleBuyCredits('pack_small')}
-                  >
-                    {tPacks('buy')}
-                  </Button>
-                </div>
-
-                {/* Medium Pack */}
-                <div className="border-2 border-primary rounded-lg p-4 space-y-2 relative">
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">{tPacks('medium.popular')}</Badge>
-                  <div className="text-sm font-medium">{tPacks('medium.name')}</div>
-                  <div className="text-2xl font-bold">$249</div>
-                  <div className="text-sm text-muted-foreground">{tPacks('medium.credits')}</div>
-                  <div className="text-xs text-green-600">$0.62/credit</div>
-                  <div className="text-xs text-orange-600 font-semibold">{tPacks('medium.save')}</div>
-                  <Button 
-                    className="w-full bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)]"
-                    onClick={() => handleBuyCredits('pack_medium')}
-                  >
-                    {tPacks('buy')}
-                  </Button>
-                </div>
-
-                {/* Large Pack */}
-                <div className="border rounded-lg p-4 space-y-2 hover:border-primary/50 transition-colors">
-                  <div className="text-sm font-medium">{tPacks('large.name')}</div>
-                  <div className="text-2xl font-bold">$499</div>
-                  <div className="text-sm text-muted-foreground">{tPacks('large.credits')}</div>
-                  <div className="text-xs text-green-600">$0.33/credit</div>
-                  <div className="text-xs text-orange-600 font-semibold">{tPacks('large.save')}</div>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => handleBuyCredits('pack_large')}
-                  >
-                    {tPacks('buy')}
-                  </Button>
-                </div>
-
-                {/* Enterprise Pack */}
-                <div className="border rounded-lg p-4 space-y-2 hover:border-primary/50 transition-colors">
-                  <div className="text-sm font-medium">{tPacks('enterprise.name')}</div>
-                  <div className="text-2xl font-bold">$999</div>
-                  <div className="text-sm text-muted-foreground">{tPacks('enterprise.credits')}</div>
-                  <div className="text-xs text-green-600">$0.20/credit</div>
-                  <div className="text-xs text-orange-600 font-semibold">{tPacks('enterprise.save')}</div>
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => handleBuyCredits('pack_enterprise')}
-                  >
-                    {tPacks('buy')}
-                  </Button>
-                </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {[
+                  { key: 'DISCOVER_LEAD', label: 'Lead discovery (per result)', icon: '🔍' },
+                  { key: 'ENRICH_COMPANY', label: 'Company enrichment', icon: '⚡' },
+                  { key: 'VERIFY_EMAIL', label: 'Email verification', icon: '✉️' },
+                  { key: 'COLD_EMAIL', label: 'AI cold email', icon: '🤖' },
+                  { key: 'FIND_SIMILAR', label: 'Similar companies (10x)', icon: '🔗' },
+                  { key: 'INTENT_MONITOR', label: 'Intent monitoring /domain/mo', icon: '👁️' },
+                  { key: 'EXPORT_LEAD', label: 'Lead export (per row)', icon: '📤' },
+                ].map(({ key, label, icon }) => (
+                  <div key={key} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 text-sm">
+                    <span className="text-muted-foreground">
+                      {icon} {label}
+                    </span>
+                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 gap-1">
+                      <Zap className="h-2.5 w-2.5" />
+                      {CREDIT_COSTS[key as keyof typeof CREDIT_COSTS]} cr
+                    </Badge>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Credit Ledger */}
+          {/* ─── Buy credit packs ─── */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Top up your credits</CardTitle>
+                  <CardDescription>One-time packs — credits never expire</CardDescription>
+                </div>
+                <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {CREDIT_PACKS.map((pack) => (
+                  <div
+                    key={pack.id}
+                    className={cn(
+                      'relative rounded-xl border p-4 space-y-3 transition-shadow hover:shadow-md',
+                      pack.highlighted ? 'border-primary/50 bg-primary/5' : 'border-border'
+                    )}
+                  >
+                    {pack.highlighted && (
+                      <Badge className="absolute -top-2.5 left-3 bg-primary text-primary-foreground text-[10px]">
+                        Best value
+                      </Badge>
+                    )}
+                    <div>
+                      <div className="text-sm font-semibold">{pack.name}</div>
+                      <div className="text-2xl font-extrabold mt-0.5">
+                        ${Math.round(pack.priceCents / 100)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm font-medium">
+                      <Zap className="h-3.5 w-3.5 text-amber-500" />
+                      {pack.credits.toLocaleString()} credits
+                    </div>
+                    <div className="text-xs text-emerald-600 font-medium">Save {pack.savingsPct}% vs overage</div>
+                    <Button
+                      size="sm"
+                      variant={pack.highlighted ? 'default' : 'outline'}
+                      className={cn(
+                        'w-full',
+                        pack.highlighted && 'bg-gradient-to-r from-primary to-[oklch(0.65_0.28_25)] hover:opacity-90'
+                      )}
+                      onClick={() => handleBuyCredits(pack.id)}
+                    >
+                      Buy
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ─── Credit ledger ─── */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>{tLedger('title')}</CardTitle>
-                  <CardDescription>
-                    {tLedger('description')}
-                  </CardDescription>
+                  <CardDescription>{tLedger('description')}</CardDescription>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-3.5 h-3.5" />
                   {tLedger('exportCsv')}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {ledger.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{tLedger('noRecords')}</p>
-                  </div>
-                ) : (
-                  ledger.map((entry) => (
+              {ledger.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <History className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">{tLedger('noRecords')}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {ledger.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          entry.amount > 0 ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
-                          {entry.amount > 0 ? (
-                            <TrendingUp className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <Zap className="w-5 h-5 text-red-600" />
-                          )}
+                        <div className={cn(
+                          'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                          entry.amount > 0 ? 'bg-emerald-100' : 'bg-red-100'
+                        )}>
+                          {entry.amount > 0
+                            ? <TrendingUp className="w-4 h-4 text-emerald-600" />
+                            : <Zap className="w-4 h-4 text-red-500" />
+                          }
                         </div>
                         <div>
-                          <div className="font-medium">{entry.description}</div>
+                          <div className="text-sm font-medium leading-tight">{entry.description}</div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(entry.createdAt).toLocaleString()}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-bold ${
-                          entry.amount > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                      <div className="text-right shrink-0">
+                        <div className={cn(
+                          'text-sm font-bold',
+                          entry.amount > 0 ? 'text-emerald-600' : 'text-red-500'
+                        )}>
                           {entry.amount > 0 ? '+' : ''}{entry.amount}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {tLedger('balance')}: {entry.balanceAfter}
+                          bal: {entry.balanceAfter}
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </>
+        </div>
       )}
     </div>
-  );
+  )
 }
