@@ -444,6 +444,54 @@ model Lead {
   deletedAt       DateTime?
 
   campaigns CampaignLead[]
+  dueDiligences LeadDueDiligence[]
+}
+
+// ==================== LEAD DUE DILIGENCE (背调) ====================
+
+model LeadDueDiligence {
+  id              String    @id @default(cuid())
+  leadId          String
+  lead            Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tenantId        String
+
+  // 背调状态
+  status          String    @default("pending") // pending | processing | completed | failed
+  creditCost      Int       @default(40) // 40 credits
+
+  // 数据来源
+  sources         Json      @default("[]") // ["crunchbase", "linkedin", "newsapi"]
+
+  // 聚合数据
+  summary         String?   // AI 生成的摘要
+  confidence      Float?    // 数据完整度 0-100
+
+  // Crunchbase 数据
+  crunchbaseData  Json?     // Crunchbase 组织信息
+
+  // LinkedIn 数据
+  linkedinData   Json?     // LinkedIn 公司信息
+
+  // 新闻数据
+  newsArticles   Json?     // NewsAPI 文章列表
+
+  // 原始响应（调试用）
+  rawResponses   Json?     // 各 API 的原始响应
+
+  // 错误信息
+  errorMessage   String?
+
+  // 触发信息
+  triggeredById  String?    // 触发背调的 user ID
+  triggeredByEmail String?  // 触发背调的 user email
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime?
+
+  @@index([leadId])
+  @@index([tenantId])
+  @@index([status])
 }
 
 model Campaign {
