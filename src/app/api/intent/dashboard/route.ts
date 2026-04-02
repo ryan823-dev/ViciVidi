@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const twentyFourHoursAgo = new Date()
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
 
-    // 并发查询：聚合意图分 + 实时信号流
+    // 并发查询：聚合意图分 + 实时信号流 + 共享公司数据（用于获取 techStack）
     const [rawSignals, recentRawSignals] = await Promise.all([
       // 所有 lead 维度信号（30天内）
       prisma.intentSignal.findMany({
@@ -36,7 +36,14 @@ export async function GET(req: NextRequest) {
           leadId: { not: null },
         },
         include: {
-          lead: { select: { id: true, companyName: true, domain: true, status: true } },
+          lead: {
+            select: {
+              id: true,
+              companyName: true,
+              domain: true,
+              status: true,
+            }
+          },
         },
         orderBy: { occurredAt: 'desc' },
       }),
@@ -54,12 +61,21 @@ export async function GET(req: NextRequest) {
       }),
     ])
 
+    // 提取所有涉及的域名，批量查询 SharedCompany 获取 techStack
+    const domains = Array.from(new Set(rawSignals.map(s => s.lead?.domain).filter(Boolean))) as string[]
+    const sharedCompanies = await prisma.sharedCompany.findMany({
+      where: { domain: { in: domains } },
+      select: { domain: true, techStack: true }
+    })
+    const techStackMap = new Map(sharedCompanies.map(c => [c.domain, c.techStack]))
+
     // ===== 按 leadId 聚合意图得分 =====
     const leadMap = new Map<string, {
       leadId: string
       companyName: string
       domain: string
       status: string
+      techStack: any[]
       totalScore: number
       signalCount: number
       recentSignals: number
@@ -75,11 +91,13 @@ export async function GET(req: NextRequest) {
       const weightedScore = Math.round(sig.score * sig.intensity * timeWeight)
 
       if (!leadMap.has(sig.leadId)) {
+        const domain = sig.lead.domain ?? ''
         leadMap.set(sig.leadId, {
           leadId: sig.leadId,
           companyName: sig.lead.companyName,
-          domain: sig.lead.domain ?? '',
+          domain: domain,
           status: sig.lead.status,
+          techStack: (techStackMap.get(domain) as any[]) ?? [],
           totalScore: 0,
           signalCount: 0,
           recentSignals: 0,
@@ -126,6 +144,7 @@ export async function GET(req: NextRequest) {
           companyName: e.companyName,
           domain: e.domain,
           status: e.status,
+          techStack: e.techStack,
           totalScore: e.totalScore,
           scoreLevel,
           signalCount: e.signalCount,

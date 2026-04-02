@@ -16,6 +16,11 @@
  *
  * 第3层：有免费额度的 API
  *   ├── Apollo.io（公司+联系人，50次/月免费）
+ *   ├── PDL (People Data Labs)（公司画像/数据深度，付费）
+ *   ├── Exa.ai（语义搜索/相似客户，1000次/月免费）
+ *   ├── BuiltWith（技术栈，低频调用/免费额度）
+ *   ├── Tavily AI（AI 针对性搜索，高级检索）
+ *   ├── SerpAPI（Google 搜索结果，强化搜索）
  *   ├── Skrapp.io（邮箱查找，100次/月免费）
  *   ├── Hunter.io（邮箱备用，25次/月免费）
  *   ├── Google Places（公司信息，$200/月免费额度）
@@ -38,6 +43,11 @@ import { enrichFromBraveSearch } from './brave-search'
 import { enrichFromGooglePlaces } from './google-places'
 import { findEmailsFromHunter } from './hunter'
 import { enrichFromFirecrawl } from './firecrawl'
+import { enrichFromExa } from './exa'
+import { enrichFromBuiltWith } from './builtwith'
+import { enrichFromTavily } from './tavily'
+import { enrichFromPDL } from './pdl'
+import { enrichFromSerpApi } from './serpapi'
 import { prisma } from '@/lib/db'
 
 // ===== 并发批次大小（防止 rate limit） =====
@@ -172,15 +182,19 @@ export async function enrichCompanyData(
         }
       }
 
-      // --- 组B：Skrapp + Hunter（邮箱）+ Google Places（电话）—— 三者独立，并发 ---
+      // --- 组B：Skrapp + Hunter（邮箱）+ Google Places（电话）+ BuiltWith（技术栈）+ PDL（深度数据） —— 并发 ---
       if (totalCost < maxCostPerCompany) {
         const needEmail = !updates.email
         const needPhone = !updates.phone
+        const needTech = !updates.techStack || (updates.techStack as any[]).length === 0
+        const needStats = !updates.employees || !updates.revenue
 
-        const [skrappR, hunterR, placesR] = await Promise.allSettled([
+        const [skrappR, hunterR, placesR, builtwithR, pdlR] = await Promise.allSettled([
           needEmail ? enrichFromSkrapp(domain).catch(() => null) : Promise.resolve(null),
           needEmail ? findEmailsFromHunter(domain).catch(() => null) : Promise.resolve(null),
           needPhone ? enrichFromGooglePlaces(domain).catch(() => null) : Promise.resolve(null),
+          needTech ? enrichFromBuiltWith(domain).catch(() => null) : Promise.resolve(null),
+          needStats ? enrichFromPDL(domain).catch(() => null) : Promise.resolve(null),
         ])
 
         if (skrappR.status === 'fulfilled' && skrappR.value && !updates.email) {
@@ -211,13 +225,34 @@ export async function enrichCompanyData(
           layers.paid = true
           sourcesUsed.push('Google Places')
         }
+
+        if (builtwithR.status === 'fulfilled' && builtwithR.value) {
+          mergeResults(updates, builtwithR.value.data)
+          newSources.push(...builtwithR.value.sources)
+          sourcesAdded += builtwithR.value.sources.length
+          totalCost += 0.05
+          layers.paid = true
+          sourcesUsed.push('BuiltWith')
+        }
+
+        if (pdlR.status === 'fulfilled' && pdlR.value) {
+          mergeResults(updates, pdlR.value.data)
+          newSources.push(...pdlR.value.sources)
+          sourcesAdded += pdlR.value.sources.length
+          totalCost += 0.1
+          layers.paid = true
+          sourcesUsed.push('PDL')
+        }
       }
 
-      // --- 组C：Brave Search + Firecrawl 兜底（仍缺数据时并发） ---
-      if (!updates.email && !updates.phone && totalCost < maxCostPerCompany) {
-        const [braveR, firecrawlR] = await Promise.allSettled([
+      // --- 组C：Brave + Firecrawl + Exa + Tavily + SerpAPI 搜索层（并发） ---
+      if (totalCost < maxCostPerCompany) {
+        const [braveR, firecrawlR, exaR, tavilyR, serpR] = await Promise.allSettled([
           enrichFromBraveSearch(domain).catch(() => null),
           !layers.webScrape ? enrichFromFirecrawl(domain).catch(() => null) : Promise.resolve(null),
+          enrichFromExa(domain).catch(() => null),
+          enrichFromTavily(domain).catch(() => null),
+          enrichFromSerpApi(domain).catch(() => null),
         ])
 
         if (braveR.status === 'fulfilled' && braveR.value) {
@@ -237,6 +272,33 @@ export async function enrichCompanyData(
           totalCost += 0.01
           layers.paid = true
           sourcesUsed.push('Firecrawl')
+        }
+
+        if (exaR.status === 'fulfilled' && exaR.value) {
+          mergeResults(updates, exaR.value.data)
+          newSources.push(...exaR.value.sources)
+          sourcesAdded += exaR.value.sources.length
+          totalCost += 0.01
+          layers.paid = true
+          sourcesUsed.push('Exa Search')
+        }
+
+        if (tavilyR.status === 'fulfilled' && tavilyR.value) {
+          mergeResults(updates, tavilyR.value.data)
+          newSources.push(...tavilyR.value.sources)
+          sourcesAdded += tavilyR.value.sources.length
+          totalCost += 0.01
+          layers.paid = true
+          sourcesUsed.push('Tavily AI')
+        }
+
+        if (serpR.status === 'fulfilled' && serpR.value) {
+          mergeResults(updates, serpR.value.data)
+          newSources.push(...serpR.value.sources)
+          sourcesAdded += serpR.value.sources.length
+          totalCost += 0.01
+          layers.paid = true
+          sourcesUsed.push('SerpAPI')
         }
       }
     }

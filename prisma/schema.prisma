@@ -150,6 +150,7 @@ model SharedCompany {
   linkedinUrl String? @map("linkedin_url")
   website     String?
   description String?
+  techStack   Json?   @default("[]") @map("tech_stack")
 
   // 数据来源追踪 (JSON数组)
   sources Json @default("[]")

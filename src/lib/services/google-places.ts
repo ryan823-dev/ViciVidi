@@ -25,7 +25,7 @@ interface EnrichmentResult {
 export async function enrichFromGooglePlaces(
   domain: string
 ): Promise<EnrichmentResult | null> {
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_PLACES_API_KEY
 
   if (!apiKey) {
     console.warn('Google Places API key not configured')

@@ -40,6 +40,7 @@ interface IntentScore {
   companyName: string
   domain: string
   status: string
+  techStack: string[]
   totalScore: number
   scoreLevel: 'low' | 'medium' | 'high' | 'critical'
   signalCount: number
@@ -248,7 +249,21 @@ export default function IntentDashboardPage() {
                         <div>
                           <div className="font-medium">{item.companyName}</div>
                           {item.domain && (
-                            <div className="text-xs text-muted-foreground">{item.domain}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              {item.domain}
+                            </div>
+                          )}
+                          {item.techStack && item.techStack.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {item.techStack.slice(0, 3).map((tech) => (
+                                <Badge key={tech} variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-blue-50 text-blue-600 border-blue-100 font-normal">
+                                  {tech}
+                                </Badge>
+                              ))}
+                              {item.techStack.length > 3 && (
+                                <span className="text-[10px] text-muted-foreground">+{item.techStack.length - 3}</span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </TableCell>
